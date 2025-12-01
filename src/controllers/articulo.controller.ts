@@ -1,4 +1,3 @@
-// src/controllers/articulo.controller.ts
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Articulo } from '../entities/Articulo';

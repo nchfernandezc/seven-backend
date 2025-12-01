@@ -1,4 +1,3 @@
-// src/models/Cliente.ts
 import { Entity, Column, Index, OneToMany } from 'typeorm';
 import { BaseModel } from './BaseModel';
 import { Cxcobrar } from './Cxcobrar';

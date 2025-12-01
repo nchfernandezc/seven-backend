@@ -1,8 +1,6 @@
-// 1. Importar y configurar dotenv ANTES que nada
 import dotenv from 'dotenv';
-dotenv.config(); // ¡Esta línea debe estar aquí arriba!
+dotenv.config(); 
 
-// 2. Ahora sí, el resto de las importaciones
 import 'reflect-metadata'; 
 import { AppDataSource } from './config/database';
 import app from './app';
