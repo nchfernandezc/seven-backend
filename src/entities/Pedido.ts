@@ -1,0 +1,43 @@
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { BaseModel } from './BaseModel';
+import { Cliente } from './Cliente';
+import { Articulo } from './Articulo';
+
+@Entity('pedidos')
+export class Pedido extends BaseModel {
+    @Column({ name: 'num', type: 'varchar', length: 20, nullable: false })
+    @Index({ unique: true })
+    numero!: string;
+
+    @Column({ name: 'cod', type: 'varchar', length: 30, nullable: false })
+    articuloCodigo!: string;
+
+    @Column({ name: 'can', type: 'decimal', precision: 10, scale: 2, nullable: false })
+    cantidad!: number;
+
+    @Column({ name: 'pvp', type: 'decimal', precision: 10, scale: 2, nullable: false })
+    precioVenta!: number;
+
+    @Column({ name: 'ccli', type: 'varchar', length: 20, nullable: false })
+    clienteCodigo!: string;
+
+    @Column({ name: 'ista', type: 'int', default: 1 })
+    estado!: number; // 1: Pendiente, 2: Procesado, 3: Anulado
+
+    @Column({ name: 'dfec', type: 'datetime', nullable: false })
+    fecha!: Date;
+
+    @Column({ name: 'cusu', type: 'varchar', length: 30, nullable: false })
+    usuario!: string;
+
+    @Column({ name: 'idx', type: 'int', default: 0 })
+    indice!: number;
+
+    @ManyToOne(() => Cliente)
+    @JoinColumn({ name: 'ccli', referencedColumnName: 'codigo' })
+    cliente!: Cliente;
+
+    @ManyToOne(() => Articulo)
+    @JoinColumn({ name: 'cod', referencedColumnName: 'codigo' })
+    articulo!: Articulo;
+}
