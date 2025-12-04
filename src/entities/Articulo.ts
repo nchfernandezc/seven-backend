@@ -1,12 +1,13 @@
-import { Entity, Column, Index } from 'typeorm';
+import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseModel } from './BaseModel';
+import { Empresa } from './Empresa';
 
 @Entity('articulos')
+@Index(['empresaId', 'codigo'], { unique: true })
 export class Articulo extends BaseModel {
     @Column({ name: 'ccod', type: 'varchar', length: 30, nullable: false })
-    @Index({ unique: true })
-    codigo!: string;  
-    
+    codigo!: string;
+
     @Column({ name: 'cdet', type: 'varchar', length: 100, nullable: false })
     descripcion!: string;
 
@@ -21,4 +22,13 @@ export class Articulo extends BaseModel {
 
     @Column({ name: 'ccla', type: 'varchar', length: 50, nullable: true })
     clase?: string;
+
+    @Column({ name: 'empresa_id', type: 'int', nullable: true })
+    empresaId!: number;
+
+    @ManyToOne(() => Empresa, (empresa) => empresa.articulos, {
+        onDelete: 'CASCADE',
+    })
+    @JoinColumn({ name: 'empresa_id' })
+    empresa!: Empresa;
 }

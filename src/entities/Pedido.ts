@@ -32,12 +32,21 @@ export class Pedido extends BaseModel {
 
     @Column({ name: 'idx', type: 'int', default: 0 })
     indice!: number;
+    
+    @Column({ name: 'empresa_id', type: 'int', nullable: false })
+    empresaId!: number;
 
-    @ManyToOne(() => Cliente)
-    @JoinColumn({ name: 'ccli', referencedColumnName: 'codigo' })
+    @ManyToOne(() => Cliente, { createForeignKeyConstraints: false })
+    @JoinColumn([
+        { name: 'empresa_id', referencedColumnName: 'empresaId' },
+        { name: 'ccli', referencedColumnName: 'codigo' }
+    ])
     cliente!: Cliente;
 
-    @ManyToOne(() => Articulo)
-    @JoinColumn({ name: 'cod', referencedColumnName: 'codigo' })
+    @ManyToOne(() => Articulo, { createForeignKeyConstraints: false })
+    @JoinColumn([
+        { name: 'empresa_id', referencedColumnName: 'empresaId' },
+        { name: 'cod', referencedColumnName: 'codigo' }
+    ])
     articulo!: Articulo;
 }

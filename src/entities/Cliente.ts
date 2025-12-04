@@ -1,12 +1,14 @@
-import { Entity, Column, Index, OneToMany } from 'typeorm';
+import { Entity, Column, Index, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseModel } from './BaseModel';
 import { Cxcobrar } from './Cxcobrar';
 import { Pedido } from './Pedido';
+import { Vendedor } from './Vendedor';
+import { Empresa } from './Empresa';
 
 @Entity('clientes')
+@Index(['empresaId', 'codigo'], { unique: true })
 export class Cliente extends BaseModel {
     @Column({ name: 'ccod', type: 'varchar', length: 20, nullable: false })
-    @Index({ unique: true })
     codigo!: string;
 
     @Column({ name: 'cdet', type: 'varchar', length: 100, nullable: false })
@@ -19,7 +21,21 @@ export class Cliente extends BaseModel {
     telefono?: string;
 
     @Column({ name: 'cven', type: 'varchar', length: 10, nullable: false })
-    vendedorId!: string;
+    vendedorCodigo!: string;
+
+    @Column({ name: 'empresa_id', type: 'int', nullable: false })
+    empresaId!: number;
+
+    @ManyToOne(() => Empresa)
+    @JoinColumn({ name: 'empresa_id' })
+    empresa!: Empresa;
+
+    @ManyToOne(() => Vendedor, (vendedor) => vendedor.clientes)
+    @JoinColumn([
+        { name: 'empresa_id', referencedColumnName: 'empresaId' },
+        { name: 'cven', referencedColumnName: 'codigo' }
+    ])
+    vendedor!: Vendedor;
 
     @OneToMany(() => Cxcobrar, (cxc) => cxc.cliente, {
         cascade: true,
