@@ -15,12 +15,12 @@ const BaseModel_1 = require("./BaseModel");
 const Cxcobrar_1 = require("./Cxcobrar");
 const Pedido_1 = require("./Pedido");
 const Vendedor_1 = require("./Vendedor");
+const Empresa_1 = require("./Empresa");
 let Cliente = class Cliente extends BaseModel_1.BaseModel {
 };
 exports.Cliente = Cliente;
 __decorate([
     (0, typeorm_1.Column)({ name: 'ccod', type: 'varchar', length: 20, nullable: false }),
-    (0, typeorm_1.Index)({ unique: true }),
     __metadata("design:type", String)
 ], Cliente.prototype, "codigo", void 0);
 __decorate([
@@ -38,10 +38,22 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ name: 'cven', type: 'varchar', length: 10, nullable: false }),
     __metadata("design:type", String)
-], Cliente.prototype, "vendedorId", void 0);
+], Cliente.prototype, "vendedorCodigo", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'empresa_id', type: 'int', nullable: false }),
+    __metadata("design:type", Number)
+], Cliente.prototype, "empresaId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => Empresa_1.Empresa),
+    (0, typeorm_1.JoinColumn)({ name: 'empresa_id' }),
+    __metadata("design:type", Empresa_1.Empresa)
+], Cliente.prototype, "empresa", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => Vendedor_1.Vendedor, (vendedor) => vendedor.clientes),
-    (0, typeorm_1.JoinColumn)({ name: 'cven', referencedColumnName: 'codigo' }),
+    (0, typeorm_1.JoinColumn)([
+        { name: 'empresa_id', referencedColumnName: 'empresaId' },
+        { name: 'cven', referencedColumnName: 'codigo' }
+    ]),
     __metadata("design:type", Vendedor_1.Vendedor)
 ], Cliente.prototype, "vendedor", void 0);
 __decorate([
@@ -59,5 +71,6 @@ __decorate([
     __metadata("design:type", Array)
 ], Cliente.prototype, "pedidos", void 0);
 exports.Cliente = Cliente = __decorate([
-    (0, typeorm_1.Entity)('clientes')
+    (0, typeorm_1.Entity)('clientes'),
+    (0, typeorm_1.Index)(['empresaId', 'codigo'], { unique: true })
 ], Cliente);

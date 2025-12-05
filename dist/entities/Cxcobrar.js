@@ -25,7 +25,11 @@ __decorate([
     __metadata("design:type", Number)
 ], Cxcobrar.prototype, "numero", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'nsal', type: 'decimal', precision: 10, scale: 2, nullable: false }),
+    (0, typeorm_1.Column)({ name: 'monto', type: 'decimal', precision: 12, scale: 2, nullable: false }),
+    __metadata("design:type", Number)
+], Cxcobrar.prototype, "monto", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'nsal', type: 'decimal', precision: 12, scale: 2, nullable: false }),
     __metadata("design:type", Number)
 ], Cxcobrar.prototype, "saldo", void 0);
 __decorate([
@@ -37,10 +41,41 @@ __decorate([
     __metadata("design:type", Date)
 ], Cxcobrar.prototype, "fecha", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Cliente_1.Cliente, cliente => cliente.cuentasPorCobrar),
-    (0, typeorm_1.JoinColumn)({ name: 'ccli', referencedColumnName: 'codigo' }),
+    (0, typeorm_1.Column)({ name: 'fecha_vencimiento', type: 'datetime', nullable: true }),
+    __metadata("design:type", Date)
+], Cxcobrar.prototype, "fechaVencimiento", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'fecha_pago', type: 'datetime', nullable: true }),
+    __metadata("design:type", Date)
+], Cxcobrar.prototype, "fechaPago", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'estado',
+        type: 'varchar',
+        length: 20,
+        default: 'pendiente'
+    }),
+    __metadata("design:type", String)
+], Cxcobrar.prototype, "estado", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'observaciones', type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Cxcobrar.prototype, "observaciones", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => Cliente_1.Cliente, cliente => cliente.cuentasPorCobrar, {
+        eager: true,
+        onDelete: 'CASCADE'
+    }),
+    (0, typeorm_1.JoinColumn)([
+        { name: 'empresa_id', referencedColumnName: 'empresaId' },
+        { name: 'ccli', referencedColumnName: 'codigo' }
+    ]),
     __metadata("design:type", Cliente_1.Cliente)
 ], Cxcobrar.prototype, "cliente", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'empresa_id', type: 'int', nullable: false }),
+    __metadata("design:type", Number)
+], Cxcobrar.prototype, "empresaId", void 0);
 exports.Cxcobrar = Cxcobrar = __decorate([
     (0, typeorm_1.Entity)('cxcobrar')
 ], Cxcobrar);

@@ -55,13 +55,23 @@ __decorate([
     __metadata("design:type", Number)
 ], Pedido.prototype, "indice", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Cliente_1.Cliente),
-    (0, typeorm_1.JoinColumn)({ name: 'ccli', referencedColumnName: 'codigo' }),
+    (0, typeorm_1.Column)({ name: 'empresa_id', type: 'int', nullable: false }),
+    __metadata("design:type", Number)
+], Pedido.prototype, "empresaId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => Cliente_1.Cliente, { createForeignKeyConstraints: false }),
+    (0, typeorm_1.JoinColumn)([
+        { name: 'empresa_id', referencedColumnName: 'empresaId' },
+        { name: 'ccli', referencedColumnName: 'codigo' }
+    ]),
     __metadata("design:type", Cliente_1.Cliente)
 ], Pedido.prototype, "cliente", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Articulo_1.Articulo),
-    (0, typeorm_1.JoinColumn)({ name: 'cod', referencedColumnName: 'codigo' }),
+    (0, typeorm_1.ManyToOne)(() => Articulo_1.Articulo, { createForeignKeyConstraints: false }),
+    (0, typeorm_1.JoinColumn)([
+        { name: 'empresa_id', referencedColumnName: 'empresaId' },
+        { name: 'cod', referencedColumnName: 'codigo' }
+    ]),
     __metadata("design:type", Articulo_1.Articulo)
 ], Pedido.prototype, "articulo", void 0);
 exports.Pedido = Pedido = __decorate([

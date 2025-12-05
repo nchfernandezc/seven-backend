@@ -6,6 +6,7 @@ import pedidoRoutes from './pedido.routes';
 import empresaRoutes from './empresa.routes';
 import vendedorRoutes from './vendedor.routes';
 import authRoutes from './auth.routes';
+import syncRoutes from './sync.routes';
 
 const router = Router();
 
@@ -35,5 +36,6 @@ router.use('/api/pedidos', pedidoRoutes);
 router.use('/api/empresas', empresaRoutes);
 router.use('/api/vendedores', vendedorRoutes);
 router.use('/api/auth', authRoutes);
+router.use('/api', syncRoutes);
 
 export default router;

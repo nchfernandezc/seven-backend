@@ -10,6 +10,7 @@ declare global {
     interface Request {
       user?: {
         empresaId: number;
+        vendedorId?: string;
       };
     }
   }

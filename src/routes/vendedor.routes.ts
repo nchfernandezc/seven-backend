@@ -1,22 +1,28 @@
 // src/routes/vendedor.routes.ts
 import { Router } from 'express';
-import { 
-    getVendedores, 
-    getVendedorById, 
-    createVendedor, 
-    updateVendedor, 
-    deleteVendedor, 
-    getVendedorByNumero
+import {
+    getVendedores,
+    getVendedorById,
+    createVendedor,
+    updateVendedor,
+    deleteVendedor,
+    getVendedorByNumero,
+    validateVendedor
 } from '../controllers/vendedor.controller';
 
 const router = Router();
 
-// Asegúrate de agregar autenticación y validación según sea necesario
+// Rutas específicas primero (antes de las rutas con parámetros)
+router.post('/validate', validateVendedor);
+router.get('/numero/:numeroVendedor/:empresaId', getVendedorByNumero);
+
+// Rutas generales
 router.get('/', getVendedores);
-router.get('/:id', getVendedorById);
 router.post('/', createVendedor);
+
+// Rutas con parámetros al final
+router.get('/:id', getVendedorById);
 router.put('/:id', updateVendedor);
 router.delete('/:id', deleteVendedor);
-router.get('/numero/:numeroVendedor/:empresaId', getVendedorByNumero);
 
 export default router;

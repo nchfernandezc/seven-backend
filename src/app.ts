@@ -3,15 +3,19 @@ import cors from 'cors';
 import routes from './routes';
 import swaggerUi from 'swagger-ui-express';
 import specs from './config/swagger';
+import { extractHeaders } from './middleware/extractHeaders';
 
 const app = express();
 
 // Configuración de CORS
 app.use(cors({
-  origin: '*', // O especifica el dominio de tu frontend
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-company-id', 'x-salesperson-id']
 }));
+
+// Middleware para extraer headers
+app.use(extractHeaders);
 
 app.use(express.json());
 

@@ -1,3 +1,4 @@
+// src/seeds/seed.ts
 import { AppDataSource } from '../config/database';
 import { Cliente } from '../entities/Cliente';
 import { Articulo } from '../entities/Articulo';
@@ -5,12 +6,73 @@ import { Cxcobrar } from '../entities/Cxcobrar';
 import { Pedido } from '../entities/Pedido';
 import { Vendedor } from '../entities/Vendedor';
 import { Empresa } from '../entities/Empresa';
+import { SyncLog } from '../entities/SyncLog';
+
+// src/seeds/seed.ts
+
+async function clearDatabase() {
+  const queryRunner = AppDataSource.createQueryRunner();
+  
+  try {
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    
+    // Desactivar temporalmente las restricciones de clave foránea
+    await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0;');
+    
+    // Definir el orden de eliminación basado en las relaciones de clave foránea
+    // Primero las tablas hijas, luego las tablas padre
+    const tablesInOrder = [
+      'pedidos',
+      'cxcobrar',
+      'articulos',
+      'clientes',
+      'vendedores',
+      'empresas',
+      'sync_logs'
+    ];
+    
+    console.log('Vaciando tablas en orden...');
+    
+    // Usar DELETE para todas las tablas para evitar problemas con TRUNCATE y claves foráneas
+    for (const tableName of tablesInOrder) {
+      try {
+        console.log(`Vaciando tabla: ${tableName}`);
+        await queryRunner.query(`DELETE FROM \`${tableName}\`;`);
+        // Resetear el auto_increment
+        await queryRunner.query(`ALTER TABLE \`${tableName}\` AUTO_INCREMENT = 1;`);
+        console.log(`✓ Tabla ${tableName} vaciada correctamente`);
+      } catch (error) {
+        console.error(`Error al vaciar la tabla ${tableName}:`, error);
+        throw error; // Relanzar el error para manejarlo en el catch externo
+      }
+    }
+    
+    await queryRunner.commitTransaction();
+    console.log('Base de datos limpiada exitosamente');
+    
+  } catch (error) {
+    console.error('Error al limpiar la base de datos:', error);
+    await queryRunner.rollbackTransaction();
+    throw error;
+  } finally {
+    try {
+      // Reactivar las restricciones de clave foránea
+      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1;');
+      console.log('Restricciones de clave foránea reactivadas');
+    } finally {
+      await queryRunner.release();
+    }
+  }
+}
 
 async function seedDatabase() {
   try {
     // Inicializar la conexión a la base de datos
     await AppDataSource.initialize();
     console.log('Conexión a la base de datos establecida');
+
+    await clearDatabase();
 
     // Obtener los repositorios
     const empresaRepository = AppDataSource.getRepository(Empresa);
@@ -19,21 +81,41 @@ async function seedDatabase() {
     const articuloRepository = AppDataSource.getRepository(Articulo);
     const cxcRepository = AppDataSource.getRepository(Cxcobrar);
     const pedidoRepository = AppDataSource.getRepository(Pedido);
+    const syncLogRepository = AppDataSource.getRepository(SyncLog);
 
-    // Limpiar tablas (opcional, ten cuidado en producción)
-    await pedidoRepository.createQueryBuilder().delete().where('1 = 1').execute();
-    await cxcRepository.createQueryBuilder().delete().where('1 = 1').execute();
-    await articuloRepository.createQueryBuilder().delete().where('1 = 1').execute();
-    await clienteRepository.createQueryBuilder().delete().where('1 = 1').execute();
-    await vendedorRepository.createQueryBuilder().delete().where('1 = 1').execute();
-    await empresaRepository.createQueryBuilder().delete().where('1 = 1').execute();
+    // No necesitamos limpiar las tablas aquí ya que ya lo hicimos en clearDatabase()
+    // Usamos una consulta directa para asegurarnos de que no se use TRUNCATE
+    const repositories = [
+      syncLogRepository,
+      pedidoRepository,
+      cxcRepository,
+      articuloRepository,
+      clienteRepository,
+      vendedorRepository,
+      empresaRepository
+    ];
+    
+    // Desactivar temporalmente las restricciones de clave foránea
+    await AppDataSource.query('SET FOREIGN_KEY_CHECKS = 0;');
+    
+    // Eliminar registros usando DELETE
+    for (const repository of repositories) {
+      await repository.query('DELETE FROM ' + repository.metadata.tableName);
+    }
+    
+    // Reactivar las restricciones de clave foránea
+    await AppDataSource.query('SET FOREIGN_KEY_CHECKS = 1;');
 
     // Crear empresa
     const empresa = empresaRepository.create({
       nombre: 'Empresa Demo',
       identificacion: 'J-123456789',
       direccion: 'Av. Principal #123',
-      telefono: '02121234567'
+      telefono: '02121234567',
+      // Campos de sincronización
+      lastSyncedAt: new Date(),
+      isDeleted: false,
+      deviceId: 'seed-script'
     });
     await empresaRepository.save(empresa);
 
@@ -42,127 +124,102 @@ async function seedDatabase() {
       codigo: 'VEN001',
       nombre: 'Juan Pérez',
       telefono: '04141234567',
-      empresaId: empresa.id
+      empresaId: empresa.id,
+      // Campos de sincronización
+      lastSyncedAt: new Date(),
+      isDeleted: false,
+      deviceId: 'seed-script'
     });
     await vendedorRepository.save(vendedor);
 
-    // Crear clientes
+    // Crear cliente
     const cliente1 = clienteRepository.create({
       codigo: 'CLI001',
-      nombre: 'Tienda Don Pepe',
-      direccion: 'Av. Principal #123',
-      telefono: '04141234567',
-      vendedor: vendedor,
+      nombre: 'Cliente Uno',
+      direccion: 'Calle 1 #2-3',
+      telefono: '04141234568',
+      vendedorCodigo: vendedor.codigo,
       empresaId: empresa.id,
+      // Campos de sincronización
+      lastSyncedAt: new Date(),
+      isDeleted: false,
+      deviceId: 'seed-script'
     });
+    await clienteRepository.save(cliente1);
 
-    const cliente2 = clienteRepository.create({
-      codigo: 'CLI002',
-      nombre: 'Supermercado El Ahorro',
-      direccion: 'Calle Comercio #45',
-      telefono: '04241234567',
-      vendedor: vendedor,
-      empresaId: empresa.id,
-    });
-
-    await clienteRepository.save([cliente1, cliente2]);
-
-    // Crear artículos
+    // Crear artículo
     const articulo1 = articuloRepository.create({
       codigo: 'ART001',
-      descripcion: 'Arroz 1kg',
+      descripcion: 'Producto de ejemplo 1',
       cantidad: 100,
-      precio: 1.50,
-      marca: 'Pilaf',
-      clase: 'Granos',
+      precio: 100.00,
+      marca: 'Marca1',
+      clase: 'Clase1',
       empresaId: empresa.id,
+      // Campos de sincronización
+      lastSyncedAt: new Date(),
+      isDeleted: false,
+      deviceId: 'seed-script'
     });
+    await articuloRepository.save(articulo1);
 
-    const articulo2 = articuloRepository.create({
-      codigo: 'ART002',
-      descripcion: 'Harina de Maíz 1kg',
-      cantidad: 150,
-      precio: 1.20,
-      marca: 'Pan',
-      clase: 'Harinas',
-      empresaId: empresa.id,
-    });
-
-    const articulo3 = articuloRepository.create({
-      codigo: 'ART003',
-      descripcion: 'Aceite 1L',
-      cantidad: 80,
-      precio: 3.50,
-      marca: 'La Favorita',
-      clase: 'Aceites',
-      empresaId: empresa.id,
-    });
-
-    await articuloRepository.save([articulo1, articulo2, articulo3]);
-
-    // Crear cuentas por cobrar
-    const cxc1 = cxcRepository.create({
-      tipoDocumento: 'FAC',
-      numero: 1001,
-      saldo: 250.75,
-      cliente: cliente1,
-      fecha: new Date('2025-11-15'),
-      empresaId: empresa.id,
-    });
-
-    const cxc2 = cxcRepository.create({
-      tipoDocumento: 'FAC',
-      numero: 1002,
-      saldo: 180.30,
-      cliente: cliente2,
-      fecha: new Date('2025-11-20'),
-      empresaId: empresa.id,
-    });
-
-    await cxcRepository.save([cxc1, cxc2]);
-
-    // Crear pedidos
-    const pedido1 = pedidoRepository.create({
-      numero: 'PED-2025-001',
+    // Crear pedido
+    const pedido = pedidoRepository.create({
+      numero: 'PED-001',
       articuloCodigo: articulo1.codigo,
-      articulo: articulo1,
-      cantidad: 10,
-      precioVenta: 1.50,
+      cantidad: 2,
+      precioVenta: 100.00,
       clienteCodigo: cliente1.codigo,
-      cliente: cliente1,
-      estado: 1, // Pendiente
+      estado: 1, // 1: Pendiente
       fecha: new Date(),
       usuario: 'admin',
       indice: 1,
-      empresaId: empresa.id
+      empresaId: empresa.id,
+      // Campos de sincronización
+      lastSyncedAt: new Date(),
+      isDeleted: false,
+      deviceId: 'seed-script'
     });
+    await pedidoRepository.save(pedido);
 
-    const pedido2 = pedidoRepository.create({
-      numero: 'PED-2025-002',
-      articuloCodigo: articulo2.codigo,
-      articulo: articulo2,
-      cantidad: 5,
-      precioVenta: 1.20,
-      clienteCodigo: cliente2.codigo,
-      cliente: cliente2,
-      estado: 1, // Pendiente
+    // Crear cuenta por cobrar
+    const cxc = cxcRepository.create({
+      tipoDocumento: 'FAC', // Must be a valid document type (e.g., 'FAC', 'NCR', 'NDB')
+      numero: 1001, // Changed to number type
+      monto: 200.00, // Added required monto field
+      saldo: 200.00,
+      clienteCodigo: cliente1.codigo, // Changed from clienteId to clienteCodigo
       fecha: new Date(),
-      usuario: 'admin',
-      indice: 2,
-      empresaId: empresa.id
+      empresaId: empresa.id,
+      // Campos de sincronización
+      lastSyncedAt: new Date(),
+      isDeleted: false,
+      deviceId: 'seed-script'
     });
+    await cxcRepository.save(cxc);
 
-    await pedidoRepository.save([pedido1, pedido2]);
+    // Crear un registro de sincronización de ejemplo
+    const syncLog = syncLogRepository.create({
+      entityName: 'empresa',
+      entityId: empresa.id,
+      operation: 'CREATE',
+      deviceId: 'seed-script',
+      isSynced: true
+    });
+    await syncLogRepository.save(syncLog);
 
-    console.log('Datos de prueba insertados correctamente');
-    console.log(`Empresa ID: ${empresa.id}`);
-    console.log(`Vendedor ID: ${vendedor.codigo}`);
-    console.log('Usa estos datos para autenticarte en la aplicación');
-    
-    process.exit(0);
+    console.log('Base de datos sembrada exitosamente');
   } catch (error) {
-    console.error('Error al insertar datos de prueba:', error);
-    process.exit(1);
+    console.error('Error al sembrar la base de datos:', error);
+    if (error instanceof Error) {
+      console.error('Error detallado:', error.message);
+      console.error('Stack trace:', error.stack);
+    }
+  } finally {
+    // Cerrar la conexión
+    if (AppDataSource.isInitialized) {
+      await AppDataSource.destroy();
+    }
   }
 }
 

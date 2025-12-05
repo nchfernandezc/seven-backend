@@ -22,7 +22,7 @@ __decorate([
     __metadata("design:type", String)
 ], Vendedor.prototype, "nombre", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 50, nullable: false, unique: true }),
+    (0, typeorm_1.Column)({ type: 'varchar', length: 50, nullable: false }),
     __metadata("design:type", String)
 ], Vendedor.prototype, "codigo", void 0);
 __decorate([
@@ -45,5 +45,6 @@ __decorate([
     __metadata("design:type", Array)
 ], Vendedor.prototype, "clientes", void 0);
 exports.Vendedor = Vendedor = __decorate([
-    (0, typeorm_1.Entity)('vendedores')
+    (0, typeorm_1.Entity)('vendedores'),
+    (0, typeorm_1.Index)(['empresaId', 'codigo'], { unique: true })
 ], Vendedor);

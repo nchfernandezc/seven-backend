@@ -1,94 +1,91 @@
-// src/controllers/vendedor.controller.ts
-import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
-import { Vendedor } from '../entities/Vendedor';
-import { Empresa } from '../entities/Empresa';
-
-const vendedorRepository = AppDataSource.getRepository(Vendedor);
-const empresaRepository = AppDataSource.getRepository(Empresa);
-
-export const getVendedores = async (req: Request, res: Response) => {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.validateVendedor = exports.getVendedorByNumero = exports.deleteVendedor = exports.updateVendedor = exports.createVendedor = exports.getVendedorById = exports.getVendedores = void 0;
+const database_1 = require("../config/database");
+const Vendedor_1 = require("../entities/Vendedor");
+const Empresa_1 = require("../entities/Empresa");
+const vendedorRepository = database_1.AppDataSource.getRepository(Vendedor_1.Vendedor);
+const empresaRepository = database_1.AppDataSource.getRepository(Empresa_1.Empresa);
+const getVendedores = async (req, res) => {
     try {
         const vendedores = await vendedorRepository.find({
             relations: ['empresa']
         });
         res.json(vendedores);
-    } catch (error) {
+    }
+    catch (error) {
         res.status(500).json({ message: 'Error al obtener los vendedores' });
     }
 };
-
-export const getVendedorById = async (req: Request, res: Response) => {
+exports.getVendedores = getVendedores;
+const getVendedorById = async (req, res) => {
     try {
         const vendedor = await vendedorRepository.findOne({
             where: { id: parseInt(req.params.id) },
             relations: ['empresa']
         });
-        if (!vendedor) return res.status(404).json({ message: 'Vendedor no encontrado' });
+        if (!vendedor)
+            return res.status(404).json({ message: 'Vendedor no encontrado' });
         res.json(vendedor);
-    } catch (error) {
+    }
+    catch (error) {
         res.status(500).json({ message: 'Error al obtener el vendedor' });
     }
 };
-
-export const createVendedor = async (req: Request, res: Response) => {
+exports.getVendedorById = getVendedorById;
+const createVendedor = async (req, res) => {
     try {
         const { empresaId, ...vendedorData } = req.body;
-
         const empresa = await empresaRepository.findOneBy({ id: empresaId });
         if (!empresa) {
             return res.status(404).json({ message: 'Empresa no encontrada' });
         }
-
         const vendedor = vendedorRepository.create({
             ...vendedorData,
             empresa
         });
-
         const result = await vendedorRepository.save(vendedor);
         res.status(201).json(result);
-    } catch (error) {
+    }
+    catch (error) {
         res.status(500).json({ message: 'Error al crear el vendedor' });
     }
 };
-
-export const updateVendedor = async (req: Request, res: Response) => {
+exports.createVendedor = createVendedor;
+const updateVendedor = async (req, res) => {
     try {
         const vendedor = await vendedorRepository.findOne({
             where: { id: parseInt(req.params.id) }
         });
-
         if (!vendedor) {
             return res.status(404).json({ message: 'Vendedor no encontrado' });
         }
-
         vendedorRepository.merge(vendedor, req.body);
         const result = await vendedorRepository.save(vendedor);
         res.json(result);
-    } catch (error) {
+    }
+    catch (error) {
         res.status(500).json({ message: 'Error al actualizar el vendedor' });
     }
 };
-
-export const deleteVendedor = async (req: Request, res: Response) => {
+exports.updateVendedor = updateVendedor;
+const deleteVendedor = async (req, res) => {
     try {
         const result = await vendedorRepository.delete(parseInt(req.params.id));
-
         if (result.affected === 0) {
             return res.status(404).json({ message: 'Vendedor no encontrado' });
         }
         res.status(204).send();
-    } catch (error) {
+    }
+    catch (error) {
         res.status(500).json({ message: 'Error al eliminar el vendedor' });
     }
 };
-
-
+exports.deleteVendedor = deleteVendedor;
 // Obtener vendedor por número de vendedor y empresa (GET)
-export const getVendedorByNumero = async (req: Request, res: Response) => {
+const getVendedorByNumero = async (req, res) => {
     try {
         const { numeroVendedor, empresaId } = req.params;
-
         const vendedor = await vendedorRepository.findOne({
             where: {
                 codigo: numeroVendedor,
@@ -96,14 +93,12 @@ export const getVendedorByNumero = async (req: Request, res: Response) => {
             },
             relations: ['empresa']
         });
-
         if (!vendedor) {
             return res.status(404).json({
                 success: false,
                 message: 'Vendedor no encontrado o no pertenece a la empresa'
             });
         }
-
         res.json({
             success: true,
             data: {
@@ -117,7 +112,8 @@ export const getVendedorByNumero = async (req: Request, res: Response) => {
                 }
             }
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Error al buscar vendedor:', error);
         res.status(500).json({
             success: false,
@@ -125,12 +121,11 @@ export const getVendedorByNumero = async (req: Request, res: Response) => {
         });
     }
 };
-
+exports.getVendedorByNumero = getVendedorByNumero;
 // Validar vendedor para configuración inicial (POST)
-export const validateVendedor = async (req: Request, res: Response) => {
+const validateVendedor = async (req, res) => {
     try {
         const { codigo, empresaId } = req.body;
-
         // Validar que se proporcionen los datos necesarios
         if (!codigo || !empresaId) {
             return res.status(400).json({
@@ -138,7 +133,6 @@ export const validateVendedor = async (req: Request, res: Response) => {
                 message: 'Se requiere el código del vendedor y el ID de la empresa'
             });
         }
-
         // Buscar el vendedor
         const vendedor = await vendedorRepository.findOne({
             where: {
@@ -147,14 +141,12 @@ export const validateVendedor = async (req: Request, res: Response) => {
             },
             relations: ['empresa']
         });
-
         if (!vendedor) {
             return res.status(404).json({
                 success: false,
                 message: 'Vendedor no encontrado. Verifica el código del vendedor y el ID de la empresa.'
             });
         }
-
         // Retornar los datos del vendedor
         res.json({
             success: true,
@@ -171,7 +163,8 @@ export const validateVendedor = async (req: Request, res: Response) => {
                 }
             }
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Error al validar vendedor:', error);
         res.status(500).json({
             success: false,
@@ -179,3 +172,4 @@ export const validateVendedor = async (req: Request, res: Response) => {
         });
     }
 };
+exports.validateVendedor = validateVendedor;

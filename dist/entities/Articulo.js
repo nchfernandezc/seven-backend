@@ -18,7 +18,6 @@ let Articulo = class Articulo extends BaseModel_1.BaseModel {
 exports.Articulo = Articulo;
 __decorate([
     (0, typeorm_1.Column)({ name: 'ccod', type: 'varchar', length: 30, nullable: false }),
-    (0, typeorm_1.Index)({ unique: true }),
     __metadata("design:type", String)
 ], Articulo.prototype, "codigo", void 0);
 __decorate([
@@ -53,5 +52,6 @@ __decorate([
     __metadata("design:type", Empresa_1.Empresa)
 ], Articulo.prototype, "empresa", void 0);
 exports.Articulo = Articulo = __decorate([
-    (0, typeorm_1.Entity)('articulos')
+    (0, typeorm_1.Entity)('articulos'),
+    (0, typeorm_1.Index)(['empresaId', 'codigo'], { unique: true })
 ], Articulo);
