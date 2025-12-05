@@ -21,13 +21,13 @@ export class Cxcobrar extends BaseModel {
     @Column({ name: 'ccli', type: 'varchar', length: 20, nullable: false })
     clienteCodigo!: string;
 
-    @Column({ name: 'dfec', type: 'datetime', nullable: false })
+    @Column({ name: 'dfec', type: 'timestamp', nullable: false })
     fecha!: Date;
 
-    @Column({ name: 'fecha_vencimiento', type: 'datetime', nullable: true })
+    @Column({ name: 'fecha_vencimiento', type: 'timestamp', nullable: true })
     fechaVencimiento?: Date;
 
-    @Column({ name: 'fecha_pago', type: 'datetime', nullable: true })
+    @Column({ name: 'fecha_pago', type: 'timestamp', nullable: true })
     fechaPago?: Date;
 
     @Column({ 

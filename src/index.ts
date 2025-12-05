@@ -1,21 +1,24 @@
 import dotenv from 'dotenv';
-dotenv.config(); 
+dotenv.config();
 
-import 'reflect-metadata'; 
-import { AppDataSource } from './config/database';
+import 'reflect-metadata';
+import { initializeDatabase } from './config/database';
 import app from './app';
 
 const PORT = process.env.PORT || 3000;
 
 // Inicializar la conexión a la base de datos y luego iniciar el servidor
-AppDataSource.initialize()
-  .then(() => {
-    console.log("Database connection established successfully!");
+const startServer = async () => {
+  try {
+    await initializeDatabase();
     
     app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
     });
-  })
-  .catch((error) => {
-    console.error("Error during database connection:", error);
-  });
+  } catch (error) {
+    console.error('❌ Error al iniciar el servidor:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

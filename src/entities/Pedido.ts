@@ -24,7 +24,7 @@ export class Pedido extends BaseModel {
     @Column({ name: 'ista', type: 'int', default: 1 })
     estado!: number; // 1: Pendiente, 2: Procesado, 3: Anulado
 
-    @Column({ name: 'dfec', type: 'datetime', nullable: false })
+    @Column({ name: 'dfec', type: 'timestamp', nullable: false })
     fecha!: Date;
 
     @Column({ name: 'cusu', type: 'varchar', length: 30, nullable: false })
