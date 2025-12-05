@@ -10,6 +10,7 @@ declare global {
     interface Request {
       user?: {
         empresaId: number;
+        vendedorId?: string;
       };
     }
   }
@@ -17,25 +18,35 @@ declare global {
 
 export const getClientes = async (req: Request, res: Response) => {
   try {
-    const { empresaId } = req.user || {};
+    const { empresaId, vendedorId } = req.user || {};
+    
     if (!empresaId) {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    const clientes = await clienteRepository.find({
-      where: { empresaId },
-      order: { nombre: 'ASC' },
-      relations: ['vendedor']
-    });
+    const queryBuilder = clienteRepository
+      .createQueryBuilder('cliente')
+      .leftJoinAndSelect('cliente.vendedor', 'vendedor')
+      .where('cliente.empresaId = :empresaId', { empresaId })
+      .orderBy('cliente.nombre', 'ASC');
+
+    // Si hay un vendedorId en el usuario, filtrar por ese vendedor
+    if (vendedorId) {
+      queryBuilder.andWhere('cliente.vendedorId = :vendedorId', { vendedorId });
+    }
+
+    const clientes = await queryBuilder.getMany();
     
     res.json(clientes);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido al obtener los clientes';
     console.error('Error al obtener clientes:', error);
-    res.status(500).json({ message: 'Error al obtener los clientes', error: errorMessage });
+    res.status(500).json({ 
+      message: 'Error al obtener los clientes', 
+      error: errorMessage 
+    });
   }
 };
-
 export const getClienteById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
