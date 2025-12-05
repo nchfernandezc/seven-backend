@@ -8,13 +8,16 @@ const cors_1 = __importDefault(require("cors"));
 const routes_1 = __importDefault(require("./routes"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swagger_1 = __importDefault(require("./config/swagger"));
+const extractHeaders_1 = require("./middleware/extractHeaders");
 const app = (0, express_1.default)();
 // Configuración de CORS
 app.use((0, cors_1.default)({
-    origin: '*', // O especifica el dominio de tu frontend
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-company-id', 'x-salesperson-id']
 }));
+// Middleware para extraer headers
+app.use(extractHeaders_1.extractHeaders);
 app.use(express_1.default.json());
 // Rutas de la API
 app.use('/', routes_1.default);

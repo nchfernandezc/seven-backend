@@ -1,17 +1,78 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AppDataSource = void 0;
+exports.initializeDatabase = exports.AppDataSource = void 0;
 const typeorm_1 = require("typeorm");
-exports.AppDataSource = new typeorm_1.DataSource({
-    type: 'mysql',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306'),
-    username: process.env.DB_USERNAME || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_DATABASE || 'sistema',
-    synchronize: true,
-    logging: process.env.DB_LOGGING === 'true',
+const dotenv_1 = require("dotenv");
+// Load environment variables
+(0, dotenv_1.config)();
+// PostgreSQL configuration for Render
+const postgresConfig = {
+    type: 'postgres',
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT || '5432'),
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE,
     entities: [__dirname + "/../entities/*.{js,ts}"],
-    // migrations: ['src/migrations/*.ts'],
-    // subscribers: ['src/subscribers/*.ts'],
-});
+    synchronize: process.env.NODE_ENV !== 'production' || process.env.DB_SYNCHRONIZE === 'true',
+    logging: process.env.NODE_ENV !== 'production',
+    ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: false
+    } : false,
+    extra: {
+        // Connection pool settings
+        max: 5, // Reduced maximum number of connections
+        connectionTimeoutMillis: 10000, // Increased timeout to 10 seconds
+        idleTimeoutMillis: 60000, // Increased idle timeout
+        statement_timeout: 10000,
+        query_timeout: 10000,
+    }
+};
+// Create the DataSource instance
+exports.AppDataSource = new typeorm_1.DataSource(postgresConfig);
+// Function to initialize the database connection
+const initializeDatabase = async () => {
+    console.log('🔍 Database Configuration:');
+    console.log(`📡 Host: ${postgresConfig.host}`);
+    console.log(`📊 Database: ${postgresConfig.database}`);
+    console.log(`🔄 Synchronize: ${postgresConfig.synchronize}`);
+    console.log(`📝 Logging: ${postgresConfig.logging}`);
+    try {
+        if (!exports.AppDataSource.isInitialized) {
+            await exports.AppDataSource.initialize();
+            console.log('✅ Successfully connected to the database');
+            console.log('🔗 Connection established successfully');
+        }
+        else {
+            console.log('ℹ️ Database connection already established');
+        }
+        return exports.AppDataSource;
+    }
+    catch (error) {
+        console.error('❌ Database connection error:');
+        if (error instanceof Error) {
+            console.error('📌 Message:', error.message);
+            // Show only the first few lines of the stack trace
+            if (error.stack) {
+                const stackLines = error.stack.split('\n');
+                console.error('🔍 Stack:', stackLines.slice(0, 5).join('\n'));
+            }
+        }
+        else {
+            console.error('Unknown error:', error);
+        }
+        // Add troubleshooting tips
+        console.log('\n🔧 Troubleshooting tips:');
+        console.log('1. Verify your database credentials in .env');
+        console.log('2. Check if the database server is running and accessible');
+        console.log('3. Ensure your IP is whitelisted in Render database settings');
+        console.log('4. Check if the database exists and the user has proper permissions');
+        throw error; // Re-throw to be handled by the caller
+    }
+};
+exports.initializeDatabase = initializeDatabase;
+// Export the DataSource and initialize function
+exports.default = {
+    AppDataSource: exports.AppDataSource,
+    initializeDatabase: exports.initializeDatabase
+};

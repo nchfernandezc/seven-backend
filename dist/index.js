@@ -10,13 +10,16 @@ const database_1 = require("./config/database");
 const app_1 = __importDefault(require("./app"));
 const PORT = process.env.PORT || 3000;
 // Inicializar la conexión a la base de datos y luego iniciar el servidor
-database_1.AppDataSource.initialize()
-    .then(() => {
-    console.log("Database connection established successfully!");
-    app_1.default.listen(PORT, () => {
-        console.log(`Server is running on http://localhost:${PORT}`);
-    });
-})
-    .catch((error) => {
-    console.error("Error during database connection:", error);
-});
+const startServer = async () => {
+    try {
+        await (0, database_1.initializeDatabase)();
+        app_1.default.listen(PORT, () => {
+            console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
+        });
+    }
+    catch (error) {
+        console.error('❌ Error al iniciar el servidor:', error);
+        process.exit(1);
+    }
+};
+startServer();

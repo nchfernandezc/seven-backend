@@ -43,7 +43,7 @@ __decorate([
     __metadata("design:type", Number)
 ], Pedido.prototype, "estado", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'dfec', type: 'datetime', nullable: false }),
+    (0, typeorm_1.Column)({ name: 'dfec', type: 'timestamp', nullable: false }),
     __metadata("design:type", Date)
 ], Pedido.prototype, "fecha", void 0);
 __decorate([

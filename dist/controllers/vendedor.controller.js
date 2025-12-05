@@ -166,6 +166,7 @@ const validateVendedor = async (req, res) => {
     }
     catch (error) {
         console.error('Error al validar vendedor:', error);
+        console.error('Stack trace:', error.stack);
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor al validar el vendedor'

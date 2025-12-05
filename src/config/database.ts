@@ -21,9 +21,11 @@ const postgresConfig: PostgresConnectionOptions = {
   } : false,
   extra: {
     // Connection pool settings
-    max: 10, // Maximum number of connections in the pool
-    connectionTimeoutMillis: 5000, // Time to wait for a connection
-    idleTimeoutMillis: 30000, // Time a connection can be idle before being closed
+    max: 5, // Reduced maximum number of connections
+    connectionTimeoutMillis: 10000, // Increased timeout to 10 seconds
+    idleTimeoutMillis: 60000, // Increased idle timeout
+    statement_timeout: 10000,
+    query_timeout: 10000,
   }
 };
 

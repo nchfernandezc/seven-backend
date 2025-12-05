@@ -12,6 +12,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseModel = void 0;
 const typeorm_1 = require("typeorm");
 class BaseModel extends typeorm_1.BaseEntity {
+    constructor() {
+        super(...arguments);
+        this.isDeleted = false;
+    }
 }
 exports.BaseModel = BaseModel;
 __decorate([
@@ -26,3 +30,15 @@ __decorate([
     (0, typeorm_1.UpdateDateColumn)({ name: 'updated_at' }),
     __metadata("design:type", Date)
 ], BaseModel.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'last_synced_at', type: 'timestamp', nullable: true }),
+    __metadata("design:type", Date)
+], BaseModel.prototype, "lastSyncedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_deleted', default: false }),
+    __metadata("design:type", Boolean)
+], BaseModel.prototype, "isDeleted", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'device_id', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", String)
+], BaseModel.prototype, "deviceId", void 0);

@@ -37,15 +37,15 @@ __decorate([
     __metadata("design:type", String)
 ], Cxcobrar.prototype, "clienteCodigo", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'dfec', type: 'datetime', nullable: false }),
+    (0, typeorm_1.Column)({ name: 'dfec', type: 'timestamp', nullable: false }),
     __metadata("design:type", Date)
 ], Cxcobrar.prototype, "fecha", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'fecha_vencimiento', type: 'datetime', nullable: true }),
+    (0, typeorm_1.Column)({ name: 'fecha_vencimiento', type: 'timestamp', nullable: true }),
     __metadata("design:type", Date)
 ], Cxcobrar.prototype, "fechaVencimiento", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'fecha_pago', type: 'datetime', nullable: true }),
+    (0, typeorm_1.Column)({ name: 'fecha_pago', type: 'timestamp', nullable: true }),
     __metadata("design:type", Date)
 ], Cxcobrar.prototype, "fechaPago", void 0);
 __decorate([

@@ -98,10 +98,10 @@ const createPedido = async (req, res) => {
             ...req.body,
             fecha: new Date() // Establecer la fecha actual
         });
-        await pedidoRepository.save(pedido);
+        const resultado = await pedidoRepository.save(pedido);
         // Cargar las relaciones para la respuesta
         const pedidoConRelaciones = await pedidoRepository.findOne({
-            where: { id: pedido.id },
+            where: { id: resultado.id },
             relations: ['cliente', 'articulo']
         });
         res.status(201).json(pedidoConRelaciones);

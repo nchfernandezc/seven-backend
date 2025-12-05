@@ -91,7 +91,7 @@ router.get('/:id', pedido_controller_1.getPedidoById);
  *               estado:
  *                 type: integer
  *                 enum: [1, 2, 3]
- *                 description: 1: Pendiente, 2: Procesado, 3: Anulado
+ *                 description: "1: Pendiente, 2: Procesado, 3: Anulado"
  *                 default: 1
  *               usuario:
  *                 type: string

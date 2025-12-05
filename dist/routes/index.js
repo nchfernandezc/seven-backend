@@ -11,6 +11,7 @@ const pedido_routes_1 = __importDefault(require("./pedido.routes"));
 const empresa_routes_1 = __importDefault(require("./empresa.routes"));
 const vendedor_routes_1 = __importDefault(require("./vendedor.routes"));
 const auth_routes_1 = __importDefault(require("./auth.routes"));
+const sync_routes_1 = __importDefault(require("./sync.routes"));
 const router = (0, express_1.Router)();
 /**
  * @swagger
@@ -37,4 +38,5 @@ router.use('/api/pedidos', pedido_routes_1.default);
 router.use('/api/empresas', empresa_routes_1.default);
 router.use('/api/vendedores', vendedor_routes_1.default);
 router.use('/api/auth', auth_routes_1.default);
+router.use('/api', sync_routes_1.default);
 exports.default = router;
