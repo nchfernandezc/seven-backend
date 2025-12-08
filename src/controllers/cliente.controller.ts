@@ -32,7 +32,9 @@ export const getClientes = async (req: Request, res: Response) => {
 
     // Si hay un vendedorId en el usuario, filtrar por ese vendedor
     if (vendedorId) {
-      queryBuilder.andWhere('cliente.vendedorId = :vendedorId', { vendedorId });
+      // CAMBIAR ESTA LÍNEA:
+      queryBuilder.andWhere('cliente.vendedorCodigo = :vendedorId', { vendedorId });
+      //                              ^^^^^^^^^^^^^^ USAR vendedorCodigo
     }
 
     const clientes = await queryBuilder.getMany();
@@ -47,6 +49,58 @@ export const getClientes = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const buscarClientes = async (req: Request, res: Response) => {
+  try {
+    const { q } = req.query; // ← Asegúrate de que esté así
+    const { empresaId, vendedorId } = req.user || {};
+    
+    console.log('=== BUSCAR CLIENTES ===');
+    console.log('Query param q:', q);
+    console.log('Type of q:', typeof q);
+    console.log('empresaId:', empresaId);
+    console.log('vendedorId:', vendedorId);
+    
+    if (!empresaId) {
+      return res.status(403).json({ message: 'No se ha especificado la empresa' });
+    }
+
+    if (!q || typeof q !== 'string') {
+      console.log('ERROR: Parámetro q inválido');
+      return res.status(400).json({ 
+        message: 'Parámetro de búsqueda requerido',
+        received: { q, type: typeof q }
+      });
+    }
+
+    const queryBuilder = clienteRepository
+      .createQueryBuilder('cliente')
+      .leftJoinAndSelect('cliente.vendedor', 'vendedor')
+      .where('cliente.empresaId = :empresaId', { empresaId })
+      .andWhere(
+        '(LOWER(cliente.nombre) LIKE LOWER(:search) OR LOWER(cliente.codigo) LIKE LOWER(:search) OR cliente.telefono LIKE :search)',
+        { search: `%${q}%` }
+      )
+      .orderBy('cliente.nombre', 'ASC');
+
+    if (vendedorId) {
+      queryBuilder.andWhere('cliente.vendedorCodigo = :vendedorId', { vendedorId });
+    }
+
+    const clientes = await queryBuilder.getMany();
+    
+    console.log(`Encontrados ${clientes.length} clientes`);
+    res.json(clientes);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al buscar clientes';
+    console.error('Error al buscar clientes:', error);
+    res.status(500).json({ 
+      message: 'Error al buscar clientes', 
+      error: errorMessage 
+    });
+  }
+};
+
 export const getClienteById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -54,6 +108,11 @@ export const getClienteById = async (req: Request, res: Response) => {
     
     if (!empresaId) {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
+    }
+
+    // AGREGAR ESTA VALIDACIÓN:
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).json({ message: 'ID de cliente inválido' });
     }
 
     const cliente = await clienteRepository.findOne({

@@ -69,6 +69,7 @@ export const getPedidoById = async (req: Request, res: Response) => {
 };
 
 // Crear un nuevo pedido
+// Crear un nuevo pedido
 export const createPedido = async (req: Request, res: Response) => {
   try {
     const { empresaId } = req.user || {};
@@ -107,6 +108,7 @@ export const createPedido = async (req: Request, res: Response) => {
 
     const pedido = pedidoRepository.create({
       ...req.body,
+      empresaId,  // ← AGREGAR ESTA LÍNEA
       fecha: new Date() // Establecer la fecha actual
     });
 

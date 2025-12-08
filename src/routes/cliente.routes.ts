@@ -4,10 +4,13 @@ import {
   getClienteById, 
   createCliente, 
   updateCliente, 
-  deleteCliente 
+  deleteCliente,
+  buscarClientes 
 } from '../controllers/cliente.controller';
 
 const router = Router();
+
+router.get('/buscar', buscarClientes);
 
 /**
  * @swagger
