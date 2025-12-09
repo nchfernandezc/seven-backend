@@ -10,13 +10,13 @@ import { SyncLog } from '../entities/SyncLog';
 
 async function clearDatabase() {
   const queryRunner = AppDataSource.createQueryRunner();
-  
+
   try {
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    
+
     console.log('Vaciando tablas en orden...');
-    
+
     // Orden de eliminación basado en las relaciones
     const tablesInOrder = [
       'pedidos',
@@ -27,32 +27,32 @@ async function clearDatabase() {
       'empresas',
       'sync_logs'
     ];
-    
+
     // Desactivar temporalmente las restricciones
     await queryRunner.query('SET CONSTRAINTS ALL DEFERRED;');
-    
+
     for (const tableName of tablesInOrder) {
       try {
         console.log(`Vaciando tabla: ${tableName}`);
         await queryRunner.query(`DELETE FROM "${tableName}";`);
-        
+
         // Intentar resetear la secuencia si existe
         try {
           await queryRunner.query(`ALTER SEQUENCE IF EXISTS "${tableName}_id_seq" RESTART WITH 1;`);
         } catch (seqError) {
           console.log(`No se pudo resetear la secuencia para ${tableName}`);
         }
-        
+
         console.log(`✓ Tabla ${tableName} vaciada correctamente`);
       } catch (error) {
         console.error(`Error al vaciar la tabla ${tableName}:`, error);
         throw error;
       }
     }
-    
+
     await queryRunner.commitTransaction();
     console.log('Base de datos limpiada exitosamente');
-    
+
   } catch (error) {
     await queryRunner.rollbackTransaction();
     console.error('Error al limpiar la base de datos:', error);
@@ -68,11 +68,14 @@ async function clearDatabase() {
 
 async function seedDatabase() {
   const queryRunner = AppDataSource.createQueryRunner();
-  
+
   try {
     // Inicializar la conexión
     await AppDataSource.initialize();
     console.log('Conexión a la base de datos establecida');
+
+    // Limpiar la base de datos antes de insertar
+    await clearDatabase();
 
     // Iniciar transacción para la inserción de datos
     await queryRunner.connect();
@@ -194,7 +197,7 @@ async function seedDatabase() {
 
       await queryRunner.commitTransaction();
       console.log('✅ Datos de prueba insertados correctamente');
-      
+
     } catch (error) {
       await queryRunner.rollbackTransaction();
       console.error('Error al insertar datos de prueba:', error);

@@ -3,6 +3,7 @@ import { AppDataSource } from '../config/database';
 import { Pedido } from '../entities/Pedido';
 import { Cliente } from '../entities/Cliente';
 import { Articulo } from '../entities/Articulo';
+import { Cxcobrar } from '../entities/Cxcobrar';
 
 const pedidoRepository = AppDataSource.getRepository(Pedido);
 const clienteRepository = AppDataSource.getRepository(Cliente);
@@ -69,8 +70,10 @@ export const getPedidoById = async (req: Request, res: Response) => {
 };
 
 // Crear un nuevo pedido
-// Crear un nuevo pedido
 export const createPedido = async (req: Request, res: Response) => {
+  const queryRunner = AppDataSource.createQueryRunner();
+  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
+  
   try {
     const { empresaId } = req.user || {};
 
@@ -78,7 +81,11 @@ export const createPedido = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     // Verificar que el cliente pertenezca a la empresa
+    console.log(`[Backend] Searching client with codigo: ${req.body.clienteCodigo} and empresaId: ${empresaId}`);
     const cliente = await clienteRepository.findOne({
       where: {
         codigo: req.body.clienteCodigo,
@@ -87,12 +94,14 @@ export const createPedido = async (req: Request, res: Response) => {
     });
 
     if (!cliente) {
+      console.warn(`[Backend] Client not found: ${req.body.clienteCodigo} for empresa: ${empresaId}`);
       return res.status(404).json({
         message: 'Cliente no encontrado o no pertenece a su empresa'
       });
     }
 
     // Verificar que el artículo pertenezca a la empresa
+    console.log(`[Backend] Searching article with codigo: ${req.body.articuloCodigo} and empresaId: ${empresaId}`);
     const articulo = await articuloRepository.findOne({
       where: {
         codigo: req.body.articuloCodigo,
@@ -101,30 +110,75 @@ export const createPedido = async (req: Request, res: Response) => {
     });
 
     if (!articulo) {
+      console.warn(`[Backend] Article not found: ${req.body.articuloCodigo} for empresa: ${empresaId}`);
       return res.status(404).json({
         message: 'Artículo no encontrado o no pertenece a su empresa'
       });
     }
 
+    // Calcular el total del pedido
+    const total = req.body.cantidad * req.body.precioVenta;
+
+    // Crear el pedido
     const pedido = pedidoRepository.create({
       ...req.body,
-      empresaId,  // ← AGREGAR ESTA LÍNEA
-      fecha: new Date() // Establecer la fecha actual
+      fecha: new Date(),
+      estado: 1, // 1: Pendiente
+      empresaId,
+      usuario: req.user?.vendedorId || 'sistema'
+    }) as unknown as Pedido; // Type assertion to handle the array case
+
+    // Guardar el pedido
+    const pedidoGuardado = await queryRunner.manager.save(pedido);
+    
+    // No necesitamos buscar el pedido nuevamente ya que save() devuelve la entidad guardada
+    // con todos sus campos actualizados, incluyendo el ID generado
+
+    if (!pedidoGuardado) {
+      throw new Error('No se pudo guardar el pedido correctamente');
+    }
+
+    // Crear la cuenta por cobrar asociada al pedido
+    const lastCxc = await cxcRepository.findOne({
+        where: { empresaId },
+        order: { numero: 'DESC' }
     });
 
-    const resultado = await pedidoRepository.save(pedido);
+    const nextNumero = lastCxc ? lastCxc.numero + 1 : 1;
 
-    // Cargar las relaciones para la respuesta
-    const pedidoConRelaciones = await pedidoRepository.findOne({
-      where: { id: resultado.id },
+    const cxc = cxcRepository.create({
+        tipoDocumento: 'PED',
+        numero: nextNumero,
+        monto: total,
+        saldo: total,
+        clienteCodigo: pedidoGuardado.clienteCodigo,
+        fecha: new Date(),
+        fechaVencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
+        estado: 'pendiente' as const,
+        observaciones: `Cuenta por cobrar generada por el pedido #${pedidoGuardado.numero}`,
+        empresaId
+    });
+
+    // Guardar la cuenta por cobrar
+    await queryRunner.manager.save(cxc);
+
+    // Confirmar la transacción
+    await queryRunner.commitTransaction();
+
+    // Obtener el pedido con relaciones para la respuesta
+    const pedidoCreado = await pedidoRepository.findOne({
+      where: { id: pedido.id },
       relations: ['cliente', 'articulo']
     });
 
-    res.status(201).json(pedidoConRelaciones);
+    res.status(201).json(pedidoCreado);
   } catch (error: unknown) {
+    await queryRunner.rollbackTransaction();
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido al crear el pedido';
     console.error('Error al crear pedido:', error);
     res.status(500).json({ message: 'Error al crear el pedido', error: errorMessage });
+  } finally {
+    await queryRunner.release();
   }
 };
 

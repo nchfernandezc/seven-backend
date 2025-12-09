@@ -5,6 +5,7 @@ declare global {
             id?: number;
             empresaId: number;
             vendedorId?: string;
+            username?: string;
         }
     }
 }
