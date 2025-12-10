@@ -7,6 +7,7 @@ import empresaRoutes from './empresa.routes';
 import vendedorRoutes from './vendedor.routes';
 import authRoutes from './auth.routes';
 import syncRoutes from './sync.routes';
+import statsRoutes from './stats.routes';
 
 const router = Router();
 
@@ -23,9 +24,10 @@ const router = Router();
  *           application/json:
  *             example:
  *               message: 'API de Gestión de Pedidos - Funcionando'
+ *               version: '1.0.0'
  */
 router.get('/', (req, res) => {
-  res.json({ message: 'API de Gestión de Pedidos - Funcionando' });
+  res.json({ message: 'API de Gestión de Pedidos - Funcionando', version: '1.0.0' });
 });
 
 // API Routes
@@ -37,5 +39,6 @@ router.use('/api/empresas', empresaRoutes);
 router.use('/api/vendedores', vendedorRoutes);
 router.use('/api/auth', authRoutes);
 router.use('/api', syncRoutes);
+router.use('/api/stats', statsRoutes);
 
 export default router;
