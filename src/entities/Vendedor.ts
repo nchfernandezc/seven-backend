@@ -3,6 +3,11 @@ import { BaseModel } from './BaseModel';
 import { Empresa } from './Empresa';
 import { Cliente } from './Cliente';
 
+/**
+ * Entidad 'Vendedor'
+ * Representa a los agentes de ventas de la empresa.
+ * Se asocia con múltiples clientes.
+ */
 @Entity('vendedores')
 @Index(['empresaId', 'codigo'], { unique: true })
 export class Vendedor extends BaseModel {

@@ -3,6 +3,11 @@ import { BaseModel } from './BaseModel';
 import { Cliente } from './Cliente';
 import { Articulo } from './Articulo';
 
+/**
+ * Entidad 'Pedido'
+ * Representa las órdenes de compra generadas por los clientes.
+ * Contiene detalles como cantidad, precio y estado del pedido.
+ */
 @Entity('pedidos')
 export class Pedido extends BaseModel {
     @Column({ name: 'num', type: 'varchar', length: 20, nullable: false })
@@ -32,7 +37,7 @@ export class Pedido extends BaseModel {
 
     @Column({ name: 'idx', type: 'int', default: 0 })
     indice!: number;
-    
+
     @Column({ name: 'empresa_id', type: 'int', nullable: false })
     empresaId!: number;
 

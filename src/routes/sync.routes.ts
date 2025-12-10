@@ -1,7 +1,7 @@
 // Update src/routes/sync.routes.ts with Swagger documentation
 
 import { Router } from 'express';
-import { SyncController } from '../controllers/SyncController';
+import { SyncController } from '../controllers/sync.controller';
 import { Articulo } from '../entities/Articulo';
 import { Cliente } from '../entities/Cliente';
 import { Cxcobrar } from '../entities/Cxcobrar';

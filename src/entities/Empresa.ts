@@ -3,6 +3,11 @@ import { BaseModel } from './BaseModel';
 import { Vendedor } from './Vendedor';
 import { Articulo } from './Articulo';
 
+/**
+ * Entidad 'Empresa'
+ * Representa la compañía usuaria del sistema.
+ * Agrupa vendedores, clientes y artículos.
+ */
 @Entity('empresas')
 export class Empresa extends BaseModel {
     @Column({ type: 'varchar', length: 100, nullable: false })

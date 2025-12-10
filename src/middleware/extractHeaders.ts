@@ -1,5 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 
+/**
+ * Middleware 'extractHeaders'
+ * Extrae los IDs de empresa y vendedor de los encabezados HTTP (x-company-id, x-salesperson-id).
+ * Inyecta estos datos en req.user para su uso en los controladores.
+ */
 export const extractHeaders = (req: Request, res: Response, next: NextFunction) => {
   try {
     const companyId = req.headers['x-company-id'];

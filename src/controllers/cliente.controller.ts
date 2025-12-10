@@ -4,7 +4,7 @@ import { Cliente } from '../entities/Cliente';
 
 const clienteRepository = AppDataSource.getRepository(Cliente);
 
-// Interfaz para extender el tipo Request de Express
+// Extensión del tipo Request para incluir datos de usuario
 declare global {
   namespace Express {
     interface Request {
@@ -16,10 +16,14 @@ declare global {
   }
 }
 
+/**
+ * Obtiene todos los clientes de una empresa
+ * Filtra por vendedor si está especificado
+ */
 export const getClientes = async (req: Request, res: Response) => {
   try {
     const { empresaId, vendedorId } = req.user || {};
-    
+
     if (!empresaId) {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
@@ -30,47 +34,38 @@ export const getClientes = async (req: Request, res: Response) => {
       .where('cliente.empresaId = :empresaId', { empresaId })
       .orderBy('cliente.nombre', 'ASC');
 
-    // Si hay un vendedorId en el usuario, filtrar por ese vendedor
+    // Filtrar por vendedor si está especificado
     if (vendedorId) {
-      // CAMBIAR ESTA LÍNEA:
       queryBuilder.andWhere('cliente.vendedorCodigo = :vendedorId', { vendedorId });
-      //                              ^^^^^^^^^^^^^^ USAR vendedorCodigo
     }
 
     const clientes = await queryBuilder.getMany();
-    
+
     res.json(clientes);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al obtener los clientes';
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al obtener clientes:', error);
-    res.status(500).json({ 
-      message: 'Error al obtener los clientes', 
-      error: errorMessage 
+    res.status(500).json({
+      message: 'Error al obtener los clientes',
+      error: errorMessage
     });
   }
 };
 
+/**
+ * Busca clientes por nombre, código o teléfono
+ */
 export const buscarClientes = async (req: Request, res: Response) => {
   try {
-    const { q } = req.query; // ← Asegúrate de que esté así
+    const { q } = req.query;
     const { empresaId, vendedorId } = req.user || {};
-    
-    console.log('=== BUSCAR CLIENTES ===');
-    console.log('Query param q:', q);
-    console.log('Type of q:', typeof q);
-    console.log('empresaId:', empresaId);
-    console.log('vendedorId:', vendedorId);
-    
+
     if (!empresaId) {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
     if (!q || typeof q !== 'string') {
-      console.log('ERROR: Parámetro q inválido');
-      return res.status(400).json({ 
-        message: 'Parámetro de búsqueda requerido',
-        received: { q, type: typeof q }
-      });
+      return res.status(400).json({ message: 'Parámetro de búsqueda requerido' });
     }
 
     const queryBuilder = clienteRepository
@@ -88,170 +83,166 @@ export const buscarClientes = async (req: Request, res: Response) => {
     }
 
     const clientes = await queryBuilder.getMany();
-    
-    console.log(`Encontrados ${clientes.length} clientes`);
     res.json(clientes);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al buscar clientes';
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al buscar clientes:', error);
-    res.status(500).json({ 
-      message: 'Error al buscar clientes', 
-      error: errorMessage 
+    res.status(500).json({
+      message: 'Error al buscar clientes',
+      error: errorMessage
     });
   }
 };
 
+/**
+ * Obtiene un cliente por ID
+ */
 export const getClienteById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { empresaId } = req.user || {};
-    
+
     if (!empresaId) {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    // AGREGAR ESTA VALIDACIÓN:
     if (!id || isNaN(Number(id))) {
       return res.status(400).json({ message: 'ID de cliente inválido' });
     }
 
     const cliente = await clienteRepository.findOne({
-      where: { 
+      where: {
         id: Number(id),
-        empresaId 
+        empresaId
       },
       relations: ['vendedor']
     });
 
     if (!cliente) {
-      return res.status(404).json({ 
-        message: 'Cliente no encontrado o no pertenece a su empresa' 
-      });
+      return res.status(404).json({ message: 'Cliente no encontrado' });
     }
-    
+
     res.json(cliente);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al obtener el cliente';
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al obtener cliente:', error);
     res.status(500).json({ message: 'Error al obtener el cliente', error: errorMessage });
   }
 };
 
+/**
+ * Crea un nuevo cliente
+ */
 export const createCliente = async (req: Request, res: Response) => {
   try {
     const { empresaId } = req.user || {};
-    
+
     if (!empresaId) {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    // Verificar si ya existe un cliente con el mismo código en la misma empresa
+    // Verificar código único por empresa
     const existingCliente = await clienteRepository.findOne({
-      where: { 
+      where: {
         codigo: req.body.codigo,
-        empresaId 
+        empresaId
       }
     });
 
     if (existingCliente) {
-      return res.status(400).json({ 
-        message: 'Ya existe un cliente con el mismo código en esta empresa' 
-      });
+      return res.status(400).json({ message: 'El código de cliente ya existe' });
     }
 
     const cliente = clienteRepository.create({
       ...req.body,
-      empresaId // Asegurarse de que el cliente se asocie a la empresa del usuario
+      empresaId
     });
-    
+
     const resultado = await clienteRepository.save(cliente);
     res.status(201).json(resultado);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al crear el cliente';
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al crear cliente:', error);
     res.status(500).json({ message: 'Error al crear el cliente', error: errorMessage });
   }
 };
 
+/**
+ * Actualiza un cliente existente
+ */
 export const updateCliente = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { empresaId } = req.user || {};
-    
+
     if (!empresaId) {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    // Buscar el cliente asegurando que pertenezca a la empresa
     const cliente = await clienteRepository.findOne({
-      where: { 
+      where: {
         id: Number(id),
-        empresaId 
+        empresaId
       }
     });
-    
+
     if (!cliente) {
-      return res.status(404).json({ 
-        message: 'Cliente no encontrado o no tiene permisos para modificarlo' 
-      });
+      return res.status(404).json({ message: 'Cliente no encontrado' });
     }
 
-    // Si se está actualizando el código, verificar que no exista otro con el mismo código
+    // Verificar código único si se está actualizando
     if (req.body.codigo && req.body.codigo !== cliente.codigo) {
       const existingCliente = await clienteRepository.findOne({
-        where: { 
+        where: {
           codigo: req.body.codigo,
-          empresaId 
+          empresaId
         }
       });
 
       if (existingCliente) {
-        return res.status(400).json({ 
-          message: 'Ya existe otro cliente con el mismo código en esta empresa' 
-        });
+        return res.status(400).json({ message: 'El código de cliente ya existe' });
       }
     }
 
-    // Actualizar el cliente
     clienteRepository.merge(cliente, req.body);
     const resultado = await clienteRepository.save(cliente);
-    
+
     res.json(resultado);
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al actualizar el cliente';
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al actualizar cliente:', error);
     res.status(500).json({ message: 'Error al actualizar el cliente', error: errorMessage });
   }
 };
 
+/**
+ * Elimina un cliente
+ */
 export const deleteCliente = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { empresaId } = req.user || {};
-    
+
     if (!empresaId) {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    // Verificar que el cliente pertenezca a la empresa antes de eliminarlo
     const resultado = await clienteRepository.delete({
       id: Number(id),
       empresaId
     });
-    
+
     if (resultado.affected === 0) {
-      return res.status(404).json({ 
-        message: 'Cliente no encontrado o no tiene permisos para eliminarlo' 
-      });
+      return res.status(404).json({ message: 'Cliente no encontrado' });
     }
-    
+
     res.status(204).send();
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar el cliente';
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al eliminar cliente:', error);
-    res.status(500).json({ 
-      message: 'Error al eliminar el cliente', 
-      error: errorMessage 
+    res.status(500).json({
+      message: 'Error al eliminar el cliente',
+      error: errorMessage
     });
   }
 };

@@ -1,5 +1,10 @@
 import { BaseEntity as TypeOrmBaseEntity, CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn, Column } from 'typeorm';
 
+/**
+ * Clase base abstracta 'BaseModel'
+ * Proporciona campos comunes como id, fechas de creación/actualización y sincronización.
+ * Todas las entidades deben extender de esta clase.
+ */
 export abstract class BaseModel extends TypeOrmBaseEntity {
     @PrimaryGeneratedColumn()
     id!: number;

@@ -4,6 +4,11 @@ import { Cliente } from './Cliente';
 
 export type EstadoCxc = 'pendiente' | 'vencido' | 'pagado' | 'anulado';
 
+/**
+ * Entidad 'Cxcobrar'
+ * Representa las Cuentas por Cobrar.
+ * Gestiona deudas, pagos y saldos de los clientes.
+ */
 @Entity('cxcobrar')
 export class Cxcobrar extends BaseModel {
     @Column({ name: 'cdoc', type: 'varchar', length: 3, nullable: false })
@@ -30,7 +35,7 @@ export class Cxcobrar extends BaseModel {
     @Column({ name: 'fecha_pago', type: 'timestamp', nullable: true })
     fechaPago?: Date;
 
-    @Column({ 
+    @Column({
         name: 'estado',
         type: 'varchar',
         length: 20,
@@ -41,9 +46,9 @@ export class Cxcobrar extends BaseModel {
     @Column({ name: 'observaciones', type: 'text', nullable: true })
     observaciones?: string;
 
-    @ManyToOne(() => Cliente, cliente => cliente.cuentasPorCobrar, { 
+    @ManyToOne(() => Cliente, cliente => cliente.cuentasPorCobrar, {
         eager: true,
-        onDelete: 'CASCADE' 
+        onDelete: 'CASCADE'
     })
     @JoinColumn([
         { name: 'empresa_id', referencedColumnName: 'empresaId' },

@@ -1,6 +1,11 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseModel } from './BaseModel';
 
+/**
+ * Entidad 'SyncLog'
+ * Registro de sincronización para controlar cambios entre dispositivos y servidor.
+ * Almacena operaciones (CREATE, UPDATE, DELETE) pendientes o realizadas.
+ */
 @Entity('sync_logs')
 export class SyncLog extends BaseModel {
     @Column({ type: 'varchar', length: 255 })

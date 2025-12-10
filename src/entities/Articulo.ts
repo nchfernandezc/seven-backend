@@ -2,6 +2,11 @@ import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseModel } from './BaseModel';
 import { Empresa } from './Empresa';
 
+/**
+ * Entidad 'Articulo'
+ * Representa los productos o artículos disponibles en el inventario.
+ * Mapea a la tabla 'articulos' en la base de datos.
+ */
 @Entity('articulos')
 @Index(['empresaId', 'codigo'], { unique: true })
 export class Articulo extends BaseModel {

@@ -5,6 +5,11 @@ import { Pedido } from './Pedido';
 import { Vendedor } from './Vendedor';
 import { Empresa } from './Empresa';
 
+/**
+ * Entidad 'Cliente'
+ * Representa a los clientes de la empresa.
+ * Mapea a la tabla 'clientes' y tiene relaciones con Vendedor, Empresa, Pedidos y CxC.
+ */
 @Entity('clientes')
 @Index(['empresaId', 'codigo'], { unique: true })
 export class Cliente extends BaseModel {

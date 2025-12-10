@@ -1,48 +1,54 @@
 import { Request, Response } from 'express';
-import { getManager, In, getRepository } from 'typeorm';
+import { getManager, getRepository } from 'typeorm';
 import { SyncLog } from '../entities/SyncLog';
 import { BaseModel } from '../entities/BaseModel';
 
-// Helper type for entity constructors
 type Constructor<T> = new (...args: any[]) => T;
 
 type EntityMap = {
     [key: string]: typeof BaseModel;
 };
 
+/**
+ * Controlador de sincronización offline
+ */
 export class SyncController {
-    // Map entity names to their respective model classes
     private static entityMap: EntityMap = {};
 
-    // Register all entities that need synchronization
+    /**
+     * Registra entidades para sincronización
+     */
     public static registerEntities(entities: EntityMap) {
         Object.assign(SyncController.entityMap, entities);
     }
 
-    // Initialize sync session
+    /**
+     * Inicializa una sesión de sincronización
+     */
     public static async initSync(req: Request, res: Response) {
         const { deviceId } = req.body;
-        
+
         if (!deviceId) {
-            return res.status(400).json({ error: 'deviceId is required' });
+            return res.status(400).json({ error: 'deviceId es requerido' });
         }
 
-        // Return the current server timestamp as sync token
         const syncToken = new Date().toISOString();
-        
+
         res.json({
             success: true,
             syncToken,
-            message: 'Sync session initialized'
+            message: 'Sesión de sincronización iniciada'
         });
     }
 
-    // Push changes from device to server
+    /**
+     * Envía cambios del dispositivo al servidor
+     */
     public static async pushChanges(req: Request, res: Response) {
         const { deviceId, changes } = req.body;
-        
+
         if (!deviceId || !changes) {
-            return res.status(400).json({ error: 'deviceId and changes are required' });
+            return res.status(400).json({ error: 'deviceId y changes son requeridos' });
         }
 
         const entityManager = getManager();
@@ -56,25 +62,24 @@ export class SyncController {
                         const entityClass = SyncController.entityMap[entity];
 
                         if (!entityClass) {
-                            throw new Error(`Unknown entity: ${entity}`);
+                            throw new Error(`Entidad desconocida: ${entity}`);
                         }
 
                         let record: any;
                         let status: 'created' | 'updated' = 'updated';
 
                         if (operation === 'create') {
-                            // Use repository.create() which handles the instantiation properly
                             const repository = transactionalEntityManager.getRepository(entityClass);
                             record = repository.create();
                             status = 'created';
                         } else {
                             record = await transactionalEntityManager.findOne(entityClass, data.id);
                             if (!record) {
-                                throw new Error(`Record not found: ${entity} with id ${data.id}`);
+                                throw new Error(`Registro no encontrado: ${entity} con id ${data.id}`);
                             }
                         }
 
-                        // Apply changes
+                        // Aplicar cambios
                         Object.assign(record, data);
                         record.deviceId = deviceId;
                         record.lastSyncedAt = new Date();
@@ -84,13 +89,13 @@ export class SyncController {
                         }
 
                         await transactionalEntityManager.save(record);
-                        
+
                         results.push({ id: data.id, status });
                     } catch (error) {
                         results.push({
                             id: change.data?.id || -1,
                             status: 'error',
-                            error: error instanceof Error ? error.message : 'Unknown error'
+                            error: error instanceof Error ? error.message : 'Error desconocido'
                         });
                     }
                 }
@@ -99,28 +104,31 @@ export class SyncController {
             res.json({
                 success: true,
                 results,
-                message: 'Changes pushed successfully'
+                message: 'Cambios enviados exitosamente'
             });
         } catch (error) {
+            console.error('Error al enviar cambios:', error);
             res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : 'Failed to push changes'
+                error: error instanceof Error ? error.message : 'Error al enviar cambios'
             });
         }
     }
 
-    // Pull changes from server to device
+    /**
+     * Obtiene cambios del servidor para el dispositivo
+     */
     public static async pullChanges(req: Request, res: Response) {
         const { deviceId, lastSyncToken } = req.body;
-        
+
         if (!deviceId) {
-            return res.status(400).json({ error: 'deviceId is required' });
+            return res.status(400).json({ error: 'deviceId es requerido' });
         }
 
         try {
             const lastSyncDate = lastSyncToken ? new Date(lastSyncToken) : new Date(0);
-            
-            // Get all changes since last sync, excluding those made by this device
+
+            // Obtener cambios desde la última sincronización
             const changes = await getManager()
                 .createQueryBuilder(SyncLog, 'log')
                 .where('log.createdAt > :lastSyncDate', { lastSyncDate })
@@ -128,9 +136,9 @@ export class SyncController {
                 .andWhere('log.isSynced = :isSynced', { isSynced: false })
                 .getMany();
 
-            // Group changes by entity type
+            // Agrupar cambios por tipo de entidad
             const groupedChanges: Record<string, any[]> = {};
-            
+
             for (const change of changes) {
                 if (!groupedChanges[change.entityName]) {
                     groupedChanges[change.entityName] = [];
@@ -138,7 +146,7 @@ export class SyncController {
                 groupedChanges[change.entityName].push(change);
             }
 
-            // Mark these changes as synced
+            // Marcar cambios como sincronizados
             await getManager()
                 .createQueryBuilder()
                 .update(SyncLog)
@@ -150,12 +158,13 @@ export class SyncController {
                 success: true,
                 changes: groupedChanges,
                 syncToken: new Date().toISOString(),
-                message: 'Changes pulled successfully'
+                message: 'Cambios obtenidos exitosamente'
             });
         } catch (error) {
+            console.error('Error al obtener cambios:', error);
             res.status(500).json({
                 success: false,
-                error: error instanceof Error ? error.message : 'Failed to pull changes'
+                error: error instanceof Error ? error.message : 'Error al obtener cambios'
             });
         }
     }
