@@ -15,7 +15,7 @@ export abstract class BaseModel extends TypeOrmBaseEntity {
     @UpdateDateColumn({ name: 'updated_at' })
     updatedAt!: Date;
 
-    @Column({ name: 'last_synced_at', type: 'timestamp', nullable: true })
+    @Column({ name: 'last_synced_at', type: 'datetime', nullable: true })
     lastSyncedAt?: Date;
 
     @Column({ name: 'is_deleted', default: false })

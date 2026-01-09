@@ -67,7 +67,7 @@ const checkSystem = async () => {
         console.log(`   - Total Artículos: ${articulosCount}`);
         if (articulosCount > 0) {
             const articulos = await articuloRepo.find({ take: 3 });
-            articulos.forEach(a => console.log(`     * Código: ${a.codigo}, Desc: ${a.descripcion}, Precio: ${a.precio}`));
+            articulos.forEach(a => console.log(`     * Código: ${a.codigo}, Desc: ${a.descripcion}, Precio: ${a.precio1}`));
         }
         console.log('');
 

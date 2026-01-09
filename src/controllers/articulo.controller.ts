@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Articulo } from '../entities/Articulo';
+import { getTableName } from '../utils/tableName';
 
 const articuloRepository = AppDataSource.getRepository(Articulo);
 
@@ -16,6 +17,19 @@ declare global {
   }
 }
 
+const mapRawToArticulo = (raw: any) => ({
+  internalId: raw.xxx,
+  empresaId: raw.id,
+  codigo: raw.ccod,
+  descripcion: raw.cdet,
+  precio1: raw.npre1,
+  precio2: raw.npre2,
+  precio3: raw.npre3,
+  cantidad: raw.ncan1,
+  referencia: raw.cref,
+  marca: raw.cmar
+});
+
 /**
  * Obtiene todos los artículos de una empresa
  */
@@ -26,10 +40,18 @@ export const getArticulos = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    const articulos = await articuloRepository.find({
-      where: { empresaId },
-      order: { descripcion: 'ASC' }
-    });
+    const tableName = getTableName(empresaId, 'articulo');
+
+    // Use raw query to avoid Entity Metadata validation errors
+    const rawArticulos = await AppDataSource.createQueryBuilder()
+      .select('*')
+      .from(tableName, 'articulo')
+      .where('articulo.id = :empresaId', { empresaId }) // 'id' is the empresaId column
+      .orderBy('articulo.cdet', 'ASC')
+      .getRawMany();
+
+    const articulos = rawArticulos.map(mapRawToArticulo);
+
     res.json(articulos);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
@@ -39,7 +61,7 @@ export const getArticulos = async (req: Request, res: Response) => {
 };
 
 /**
- * Obtiene un artículo por ID
+ * Obtiene un artículo por ID (internalId / xxx)
  */
 export const getArticuloById = async (req: Request, res: Response) => {
   try {
@@ -50,15 +72,20 @@ export const getArticuloById = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    const articulo = await articuloRepository.findOne({
-      where: { id: Number(id), empresaId }
-    });
+    const tableName = getTableName(empresaId, 'articulo');
 
-    if (!articulo) {
+    const rawArticulo = await AppDataSource.createQueryBuilder()
+      .select('*')
+      .from(tableName, 'articulo')
+      .where('articulo.xxx = :id', { id: Number(id) }) // 'xxx' is the internalId column
+      .andWhere('articulo.id = :empresaId', { empresaId })
+      .getRawOne();
+
+    if (!rawArticulo) {
       return res.status(404).json({ message: 'Artículo no encontrado' });
     }
 
-    res.json(articulo);
+    res.json(mapRawToArticulo(rawArticulo));
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al obtener artículo:', error);
@@ -77,13 +104,14 @@ export const createArticulo = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
+    const tableName = getTableName(empresaId, 'articulo');
+
     // Verificar código único por empresa
-    const existingArticulo = await articuloRepository.findOne({
-      where: {
-        codigo: req.body.codigo,
-        empresaId
-      }
-    });
+    const existingArticulo = await articuloRepository.createQueryBuilder('articulo')
+      .from(tableName, 'articulo')
+      .where('articulo.codigo = :codigo', { codigo: req.body.codigo })
+      .andWhere('articulo.empresaId = :empresaId', { empresaId })
+      .getOne();
 
     if (existingArticulo) {
       return res.status(400).json({
@@ -91,13 +119,26 @@ export const createArticulo = async (req: Request, res: Response) => {
       });
     }
 
-    const articulo = articuloRepository.create({
-      ...req.body,
-      empresaId
-    });
+    // Prepare object manually since we can't use repo.create for dynamic table inserts easily
+    // We rely on QueryBuilder insert
+    const insertResult = await articuloRepository.createQueryBuilder()
+      .insert()
+      .into(tableName)
+      .values({
+        ...req.body,
+        empresaId: empresaId
+      })
+      .execute();
 
-    const resultado = await articuloRepository.save(articulo);
-    res.status(201).json(resultado);
+    // Fetch the created item to return standard response
+    const newId = insertResult.identifiers[0].internalId || insertResult.raw.insertId;
+
+    const nuevoArticulo = await articuloRepository.createQueryBuilder('articulo')
+      .from(tableName, 'articulo')
+      .where('articulo.internalId = :id', { id: Number(newId) })
+      .getOne();
+
+    res.status(201).json(nuevoArticulo);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al crear artículo:', error);
@@ -117,9 +158,13 @@ export const updateArticulo = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    const articulo = await articuloRepository.findOne({
-      where: { id: Number(id), empresaId }
-    });
+    const tableName = getTableName(empresaId, 'articulo');
+
+    const articulo = await articuloRepository.createQueryBuilder('articulo')
+      .from(tableName, 'articulo')
+      .where('articulo.internalId = :id', { id: Number(id) })
+      .andWhere('articulo.empresaId = :empresaId', { empresaId })
+      .getOne();
 
     if (!articulo) {
       return res.status(404).json({ message: 'Artículo no encontrado' });
@@ -127,12 +172,11 @@ export const updateArticulo = async (req: Request, res: Response) => {
 
     // Verificar código único si se está actualizando
     if (req.body.codigo && req.body.codigo !== articulo.codigo) {
-      const existingArticulo = await articuloRepository.findOne({
-        where: {
-          codigo: req.body.codigo,
-          empresaId
-        }
-      });
+      const existingArticulo = await articuloRepository.createQueryBuilder('articulo')
+        .from(tableName, 'articulo')
+        .where('articulo.codigo = :codigo', { codigo: req.body.codigo })
+        .andWhere('articulo.empresaId = :empresaId', { empresaId })
+        .getOne();
 
       if (existingArticulo) {
         return res.status(400).json({
@@ -141,10 +185,19 @@ export const updateArticulo = async (req: Request, res: Response) => {
       }
     }
 
-    articuloRepository.merge(articulo, req.body);
-    const resultado = await articuloRepository.save(articulo);
+    await articuloRepository.createQueryBuilder()
+      .update(tableName) // Note: typeorm update takes entity class or table name
+      .set(req.body)
+      .where('xxx = :id', { id: Number(id) }) // 'xxx' is the actual DB column for internalId
+      .andWhere('id = :empresaId', { empresaId }) // 'id' is DB column for empresaId
+      .execute();
 
-    res.json(resultado);
+    const articuloActualizado = await articuloRepository.createQueryBuilder('articulo')
+      .from(tableName, 'articulo')
+      .where('articulo.internalId = :id', { id: Number(id) })
+      .getOne();
+
+    res.json(articuloActualizado);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al actualizar artículo:', error);
@@ -164,10 +217,14 @@ export const deleteArticulo = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    const resultado = await articuloRepository.delete({
-      id: Number(id),
-      empresaId
-    });
+    const tableName = getTableName(empresaId, 'articulo');
+
+    const resultado = await articuloRepository.createQueryBuilder()
+      .delete()
+      .from(tableName)
+      .where('xxx = :id', { id: Number(id) }) // Database column name 'xxx'
+      .andWhere('id = :empresaId', { empresaId }) // Database column name 'id'
+      .execute();
 
     if (resultado.affected === 0) {
       return res.status(404).json({ message: 'Artículo no encontrado' });

@@ -1,14 +1,11 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Cxcobrar, EstadoCxc } from '../entities/Cxcobrar';
-import { Between, MoreThan, LessThan } from 'typeorm';
 import { Cliente } from '../entities/Cliente';
+import { getTableName } from '../utils/tableName';
 
-
-
-type CxcWithRelations = Cxcobrar & {
-  cliente: Cliente;
-};
+const cxcRepository = AppDataSource.getRepository(Cxcobrar);
+const clienteRepository = AppDataSource.getRepository(Cliente);
 
 interface CxcFilter {
   fechaInicio?: string;
@@ -19,75 +16,100 @@ interface CxcFilter {
   vendedorId?: string;
 }
 
+const mapRawToCxc = (raw: any) => ({
+  internalId: raw.cxc_xxx || raw.xxx,
+  empresaId: raw.cxc_id || raw.id,
+  tipoDocumento: raw.cxc_cdoc || raw.cdoc,
+  clienteCodigo: raw.cxc_ccli || raw.ccli,
+  numero: raw.cxc_inum || raw.inum,
+  monto: Number(raw.cxc_impo || raw.impo || (Number(raw.cxc_nnet || raw.nnet || 0) + Number(raw.cxc_niva || raw.niva || 0))),
+  nnet: raw.cxc_nnet || raw.nnet,
+  niva: raw.cxc_niva || raw.niva,
+  fecha: raw.cxc_dfec || raw.dfec,
+  saldo: raw.cxc_nsal || raw.nsal,
+  dias: raw.cxc_idia || raw.idia,
+  estado: (raw.cxc_ista === 1 || raw.ista === 1) ? 'pagado' : 'pendiente',
+  // Map joined client data if available
+  // Check for both 'codigo' (modern) and 'ccod' (legacy) aliases
+  cliente: (raw.cliente_codigo || raw.cliente_ccod) ? {
+    internalId: raw.cliente_xxx,
+    codigo: raw.cliente_codigo || raw.cliente_ccod,
+    nombre: raw.cliente_nombre || raw.cliente_cnom || raw.cliente_nom,
+    direccion: raw.cliente_direccion || raw.cliente_cdir || raw.cliente_dir,
+    telefono: raw.cliente_telefono || raw.cliente_ctel || raw.cliente_tel,
+    vendedorCodigo: raw.cliente_vendedorCodigo || raw.cliente_cven
+  } : undefined
+});
+
 /**
  * Obtiene todas las cuentas por cobrar con filtros opcionales
  */
 export const getCxcs = async (req: Request, res: Response) => {
-  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
-
   try {
     const filter: CxcFilter = req.query;
-    const queryBuilder = cxcRepository
-      .createQueryBuilder('cxc')
-      .leftJoinAndSelect('cxc.cliente', 'cliente')
-      .leftJoinAndSelect('cliente.vendedor', 'vendedor')
-      .orderBy('cxc.fecha', 'DESC');
+    // Prefer req.user.empresaId if available (secure), otherwise query param if allowed
+    const empresaId = req.user?.empresaId || (filter.empresaId ? Number(filter.empresaId) : undefined);
 
-    // Filtro por fechas
+    if (!empresaId) {
+      return res.status(400).json({ message: 'Se requiere el ID de la empresa' });
+    }
+
+    const tableName = getTableName(empresaId, 'cxcobrar');
+    const clienteTable = getTableName(empresaId, 'cliente');
+
+    // Use raw query builder from DataSource
+    const queryBuilder = AppDataSource.createQueryBuilder()
+      .select('cxc.*')
+      .addSelect('cliente.*')
+      .from(tableName, 'cxc')
+      .leftJoin(clienteTable, 'cliente', 'cxc.ccli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
+      .where('cxc.id = :empresaId', { empresaId })
+      .orderBy('cxc.dfec', 'DESC');
+
+    // Filter logic adaptable to raw query (using column names)
     if (filter.fechaInicio && filter.fechaFin) {
-      queryBuilder.andWhere('cxc.fecha BETWEEN :fechaInicio AND :fechaFin', {
+      queryBuilder.andWhere('cxc.dfec BETWEEN :fechaInicio AND :fechaFin', {
         fechaInicio: new Date(filter.fechaInicio),
         fechaFin: new Date(filter.fechaFin)
       });
     } else if (filter.fechaInicio) {
-      queryBuilder.andWhere('cxc.fecha >= :fechaInicio', {
+      queryBuilder.andWhere('cxc.dfec >= :fechaInicio', {
         fechaInicio: new Date(filter.fechaInicio)
       });
     } else if (filter.fechaFin) {
-      queryBuilder.andWhere('cxc.fecha <= :fechaFin', {
+      queryBuilder.andWhere('cxc.dfec <= :fechaFin', {
         fechaFin: new Date(filter.fechaFin)
       });
     }
 
-    // Filtro por estado
     if (filter.estado) {
-      queryBuilder.andWhere('cxc.estado = :estado', { estado: filter.estado });
+      // Map 'pagado'/'pendiente' to 1/0
+      const estadoVal = filter.estado === 'pagado' ? 1 : 0;
+      queryBuilder.andWhere('cxc.ista = :estado', { estado: estadoVal });
     }
 
-    // Filtro por empresa (obligatorio)
-    if (filter.empresaId) {
-      queryBuilder.andWhere('cxc.empresa_id = :empresaId', {
-        empresaId: filter.empresaId
-      });
-    } else if (req.user && req.user.empresaId) {
-      queryBuilder.andWhere('cxc.empresa_id = :empresaId', {
-        empresaId: req.user.empresaId
-      });
-    } else {
-      return res.status(400).json({
-        message: 'Se requiere el ID de la empresa'
-      });
+    const vendedorId = req.user?.vendedorId || filter.vendedorId;
+    if (vendedorId) {
+      // 'cven' in cliente table
+      queryBuilder.andWhere('cliente.cven = :vendedorId', { vendedorId });
     }
 
-    // Filtro por vendedor
-    if (filter.vendedorId) {
-      queryBuilder.andWhere('cliente.cven = :vendedorId', {
-        vendedorId: filter.vendedorId
-      });
-    } else if (req.user?.vendedorId) {
-      queryBuilder.andWhere('cliente.cven = :vendedorId', {
-        vendedorId: req.user.vendedorId
-      });
-    }
-
-    // Filtro por cliente
     if (filter.clienteId) {
-      queryBuilder.andWhere('cliente.codigo = :clienteId', {
-        clienteId: filter.clienteId
-      });
+      queryBuilder.andWhere('cliente.codigo = :clienteId', { clienteId: filter.clienteId });
     }
 
-    const cxcs = await queryBuilder.getMany();
+    const rawCxcs = await queryBuilder.getRawMany();
+
+    // Map raw results due to join aliases
+    // getRawMany with alias returns cxc_column, cliente_column
+    // We update mapper to handle this
+    const cxcs = rawCxcs.map(raw => mapRawToCxc({
+      ...raw,
+      // Manual helpers for the mapper which expects specific structure or prefixes
+      // Raw returns `cxc_xxx`, `cliente_nombre`, etc.
+      // We ensure mapper handles them.
+    }));
+
     res.json(cxcs);
   } catch (error) {
     console.error('Error al obtener cuentas por cobrar:', error);
@@ -102,21 +124,31 @@ export const getCxcs = async (req: Request, res: Response) => {
  * Obtiene una cuenta por cobrar por ID
  */
 export const getCxcById = async (req: Request, res: Response) => {
-  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
-
   try {
     const { id } = req.params;
+    const { empresaId } = req.user || {};
 
-    const cxc = await cxcRepository.findOne({
-      where: { id: Number(id) },
-      relations: ['cliente']
-    });
+    if (!empresaId) {
+      return res.status(403).json({ message: 'No se ha especificado la empresa' });
+    }
 
-    if (!cxc) {
+    const tableName = getTableName(empresaId, 'cxcobrar');
+
+    // Use Raw Query
+    const rawCxc = await AppDataSource.createQueryBuilder()
+      .select('cxc.*')
+      .addSelect('cliente.*')
+      .from(tableName, 'cxc')
+      .leftJoin(getTableName(empresaId, 'cliente'), 'cliente', 'cxc.ccli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
+      .where('cxc.xxx = :id', { id: Number(id) })
+      .andWhere('cxc.id = :empresaId', { empresaId })
+      .getRawOne();
+
+    if (!rawCxc) {
       return res.status(404).json({ message: 'Cuenta por cobrar no encontrada' });
     }
 
-    res.json(cxc);
+    res.json(mapRawToCxc(rawCxc));
   } catch (error) {
     console.error('Error al obtener cuenta por cobrar:', error);
     res.status(500).json({
@@ -131,16 +163,12 @@ export const getCxcById = async (req: Request, res: Response) => {
  */
 export const createCxc = async (req: Request, res: Response) => {
   const queryRunner = AppDataSource.createQueryRunner();
-  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
-  const clienteRepository = AppDataSource.getRepository(Cliente);
 
   try {
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     const { monto, clienteCodigo, empresaId } = req.body;
 
-    // Validaciones
+    const finalEmpresaId = req.user?.empresaId || empresaId;
+
     if (!monto || monto <= 0) {
       return res.status(400).json({ message: 'El monto debe ser mayor a cero' });
     }
@@ -149,44 +177,55 @@ export const createCxc = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'El código de cliente es requerido' });
     }
 
-    if (!empresaId) {
+    if (!finalEmpresaId) {
       return res.status(400).json({ message: 'El ID de empresa es requerido' });
     }
 
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    const clienteTable = getTableName(finalEmpresaId, 'cliente');
+    const cxcTable = getTableName(finalEmpresaId, 'cxcobrar');
+
     // Verificar cliente
-    const cliente = await clienteRepository.findOne({
-      where: {
-        codigo: clienteCodigo,
-        empresaId: Number(empresaId)
-      }
-    });
+    const cliente = await queryRunner.manager.createQueryBuilder()
+      .select('cliente')
+      .from(clienteTable, 'cliente')
+      .where('cliente.codigo = :codigo', { codigo: clienteCodigo })
+      .andWhere('cliente.empresaId = :empresaId', { empresaId: finalEmpresaId })
+      .getRawOne();
 
     if (!cliente) {
+      await queryRunner.rollbackTransaction();
       return res.status(404).json({ message: 'Cliente no encontrado' });
     }
 
-    // Crear CXC
-    const cxcData = {
-      ...req.body,
-      fecha: new Date(),
-      estado: 'pendiente' as EstadoCxc,
-      saldo: monto
-    };
-
-    const nuevoCxc = cxcRepository.create(cxcData);
-    const savedResult = await cxcRepository.save(nuevoCxc);
-    const savedCxc = Array.isArray(savedResult) ? savedResult[0] : savedResult;
+    // Insertar
+    const insertResult = await queryRunner.manager.createQueryBuilder()
+      .insert()
+      .into(cxcTable)
+      .values({
+        ...req.body,
+        fecha: new Date(),
+        estado: 'pendiente',
+        saldo: monto,
+        empresaId: finalEmpresaId
+      })
+      .execute();
 
     await queryRunner.commitTransaction();
 
-    const cxcConRelaciones = await cxcRepository.findOne({
-      where: { id: savedCxc.id },
-      relations: ['cliente']
-    });
+    const newId = insertResult.identifiers[0].internalId || insertResult.raw.insertId;
+
+    const cxcConRelaciones = await cxcRepository.createQueryBuilder('cxc')
+      .from(cxcTable, 'cxc')
+      .leftJoinAndMapOne('cxc.cliente', clienteTable, 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId: finalEmpresaId })
+      .where('cxc.internalId = :id', { id: Number(newId) })
+      .getOne();
 
     res.status(201).json(cxcConRelaciones);
   } catch (error) {
-    await queryRunner.rollbackTransaction();
+    if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
     console.error('Error al crear cuenta por cobrar:', error);
     res.status(500).json({
       message: 'Error al crear la cuenta por cobrar',
@@ -202,47 +241,60 @@ export const createCxc = async (req: Request, res: Response) => {
  */
 export const updateCxc = async (req: Request, res: Response) => {
   const queryRunner = AppDataSource.createQueryRunner();
-  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
 
   try {
+    const { id } = req.params;
+    const { empresaId } = req.user || {};
+
+    if (!empresaId) {
+      return res.status(403).json({ message: 'No se ha especificado la empresa' });
+    }
+
+    const tableName = getTableName(empresaId, 'cxcobrar');
+
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    const { id } = req.params;
-
-    const cxc = await cxcRepository.findOne({
-      where: { id: Number(id) },
-      relations: ['cliente']
-    });
+    const cxc = await cxcRepository.createQueryBuilder('cxc')
+      .from(tableName, 'cxc')
+      .where('cxc.internalId = :id', { id: Number(id) })
+      .andWhere('cxc.empresaId = :empresaId', { empresaId })
+      .getOne();
 
     if (!cxc) {
+      await queryRunner.rollbackTransaction();
       return res.status(404).json({ message: 'Cuenta por cobrar no encontrada' });
     }
 
-    const { id: _, clienteCodigo, fecha, empresaId, ...updateData } = req.body;
+    const { id: _, clienteCodigo, fecha, empresaId: __, ...updateData } = req.body;
 
-    // Si se marca como pagado, actualizar fecha y saldo
-    if (updateData.estado === 'pagado' && !updateData.fechaPago) {
-      updateData.fechaPago = new Date();
-    }
-
+    // Si se marca como pagado
     if (updateData.estado === 'pagado') {
       updateData.saldo = 0;
     }
 
-    Object.assign(cxc, updateData);
-    await cxcRepository.save(cxc);
+    await queryRunner.manager.createQueryBuilder()
+      .update(tableName)
+      .set({
+        ...updateData,
+        // We must transform 'pagado' -> 1 if we are using raw update, 
+        // because transformers only work on Entity save/find.
+        estado: updateData.estado === 'pagado' ? 1 : 0
+      })
+      .where('xxx = :id', { id: Number(id) })
+      .execute();
 
     await queryRunner.commitTransaction();
 
-    const cxcActualizado = await cxcRepository.findOne({
-      where: { id: cxc.id },
-      relations: ['cliente']
-    });
+    const cxcActualizado = await cxcRepository.createQueryBuilder('cxc')
+      .from(tableName, 'cxc')
+      .leftJoinAndMapOne('cxc.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
+      .where('cxc.internalId = :id', { id: Number(id) })
+      .getOne();
 
     res.json(cxcActualizado);
   } catch (error) {
-    await queryRunner.rollbackTransaction();
+    if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
     console.error('Error al actualizar cuenta por cobrar:', error);
     res.status(500).json({
       message: 'Error al actualizar la cuenta por cobrar',
@@ -258,36 +310,54 @@ export const updateCxc = async (req: Request, res: Response) => {
  */
 export const deleteCxc = async (req: Request, res: Response) => {
   const queryRunner = AppDataSource.createQueryRunner();
-  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
 
   try {
+    const { id } = req.params;
+    const { empresaId } = req.user || {};
+
+    if (!empresaId) {
+      return res.status(403).json({ message: 'No se ha especificado la empresa' });
+    }
+
+    const tableName = getTableName(empresaId, 'cxcobrar');
+
     await queryRunner.connect();
+    // Assuming delete is atomic enough or we need to check constraints, transaction is good practice
     await queryRunner.startTransaction();
 
-    const { id } = req.params;
-
-    const cxc = await cxcRepository.findOneBy({ id: Number(id) });
+    const cxc = await cxcRepository.createQueryBuilder('cxc')
+      .from(tableName, 'cxc')
+      .where('cxc.internalId = :id', { id: Number(id) })
+      .andWhere('cxc.empresaId = :empresaId', { empresaId })
+      .getOne();
 
     if (!cxc) {
+      await queryRunner.rollbackTransaction();
       return res.status(404).json({ message: 'Cuenta por cobrar no encontrada' });
     }
 
     if (cxc.estado === 'pagado') {
+      await queryRunner.rollbackTransaction();
       return res.status(400).json({
         message: 'No se puede eliminar una cuenta pagada'
       });
     }
 
-    const resultado = await cxcRepository.delete(id);
+    const result = await queryRunner.manager.createQueryBuilder()
+      .delete()
+      .from(tableName)
+      .where('xxx = :id', { id: Number(id) })
+      .execute();
 
-    if (resultado.affected === 0) {
+    if (result.affected === 0) {
+      await queryRunner.rollbackTransaction();
       return res.status(404).json({ message: 'No se pudo eliminar la cuenta' });
     }
 
     await queryRunner.commitTransaction();
     res.status(204).send();
   } catch (error) {
-    await queryRunner.rollbackTransaction();
+    if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
     console.error('Error al eliminar cuenta por cobrar:', error);
     res.status(500).json({
       message: 'Error al eliminar la cuenta por cobrar',
@@ -302,38 +372,37 @@ export const deleteCxc = async (req: Request, res: Response) => {
  * Obtiene cuentas por cobrar de un cliente específico
  */
 export const getCxcsByCliente = async (req: Request, res: Response) => {
-  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
-  const { clienteId } = req.params as { clienteId: string };
-  const { empresaId } = req.query as { empresaId?: string };
-
   try {
-    const { estado, fechaInicio, fechaFin } = req.query as unknown as CxcFilter;
+    const { clienteId } = req.params;
+    const filter: CxcFilter = req.query;
+    const empresaId = req.user?.empresaId || (filter.empresaId ? Number(filter.empresaId) : undefined);
 
-    const where: any = {
-      clienteCodigo: clienteId
-    };
-
-    if (empresaId) {
-      where.empresaId = Number(empresaId);
+    if (!empresaId) {
+      return res.status(400).json({ message: 'Se requiere el ID de la empresa' });
     }
 
-    if (estado) {
-      where.estado = estado;
+    const tableName = getTableName(empresaId, 'cxcobrar');
+    const clienteTable = getTableName(empresaId, 'cliente');
+
+    const queryBuilder = cxcRepository.createQueryBuilder('cxc')
+      .from(tableName, 'cxc')
+      .leftJoinAndMapOne('cxc.cliente', clienteTable, 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
+      .where('cxc.clienteCodigo = :clienteId', { clienteId })
+      .andWhere('cxc.empresaId = :empresaId', { empresaId })
+      .orderBy('cxc.fecha', 'DESC');
+
+    if (filter.estado) {
+      queryBuilder.andWhere('cxc.estado = :estado', { estado: filter.estado });
     }
 
-    if (fechaInicio && fechaFin) {
-      where.fecha = Between(
-        new Date(fechaInicio as string),
-        new Date(fechaFin as string)
-      );
+    if (filter.fechaInicio && filter.fechaFin) {
+      queryBuilder.andWhere('cxc.fecha BETWEEN :fi AND :ff', {
+        fi: new Date(filter.fechaInicio),
+        ff: new Date(filter.fechaFin)
+      });
     }
 
-    const cxcs = await cxcRepository.find({
-      where,
-      relations: ['cliente'],
-      order: { fecha: 'DESC' }
-    });
-
+    const cxcs = await queryBuilder.getMany();
     res.json(cxcs);
   } catch (error) {
     console.error('Error al obtener cuentas del cliente:', error);
@@ -348,58 +417,31 @@ export const getCxcsByCliente = async (req: Request, res: Response) => {
  * Obtiene resumen de cuentas por cobrar de un cliente
  */
 export const getResumenCxcsByCliente = async (req: Request, res: Response) => {
-  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
-
   try {
-    const { clienteId } = req.params as { clienteId: string };
-    const { empresaId } = req.query as { empresaId?: string };
+    const { clienteId } = req.params;
+    const { empresaId: queryEmpresaId } = req.query;
+    const empresaId = req.user?.empresaId || (queryEmpresaId ? Number(queryEmpresaId) : undefined);
 
-    // Verificar permisos de vendedor
-    if (req.user?.vendedorId) {
-      const cliente = await AppDataSource.getRepository(Cliente).findOne({
-        where: {
-          codigo: clienteId,
-          vendedorCodigo: req.user.vendedorId,
-          ...(empresaId ? { empresaId: Number(empresaId) } : {})
-        }
-      });
-
-      if (!cliente) {
-        return res.status(403).json({
-          message: 'No tiene permiso para ver este cliente'
-        });
-      }
+    if (!empresaId) {
+      return res.status(403).json({ message: 'Empresa ID requerido' });
     }
 
-    const whereBase: any = {
-      clienteCodigo: clienteId,
-      ...(empresaId ? { empresaId: Number(empresaId) } : {})
-    };
+    const cxcTable = getTableName(empresaId, 'cxcobrar');
+
+    const baseQuery = cxcRepository.createQueryBuilder('cxc')
+      .from(cxcTable, 'cxc')
+      .where('cxc.clienteCodigo = :clienteId', { clienteId })
+      .andWhere('cxc.empresaId = :empresaId', { empresaId });
+
+    // Clonamos queries para distintos estados
+    const qPendientes = baseQuery.clone().andWhere("cxc.estado = 'pendiente' AND cxc.fechaVencimiento > NOW()");
+    const qVencidas = baseQuery.clone().andWhere("cxc.estado = 'pendiente' AND cxc.fechaVencimiento <= NOW()");
+    const qPagadas = baseQuery.clone().andWhere("cxc.estado = 'pagado'");
 
     const [pendientes, vencidas, pagadas] = await Promise.all([
-      cxcRepository.find({
-        where: {
-          ...whereBase,
-          estado: 'pendiente',
-          fechaVencimiento: MoreThan(new Date())
-        },
-        select: ['id', 'monto', 'fechaVencimiento', 'tipoDocumento', 'numero']
-      }),
-      cxcRepository.find({
-        where: {
-          ...whereBase,
-          estado: 'pendiente',
-          fechaVencimiento: LessThan(new Date())
-        },
-        select: ['id', 'monto', 'fechaVencimiento', 'tipoDocumento', 'numero']
-      }),
-      cxcRepository.find({
-        where: {
-          ...whereBase,
-          estado: 'pagado'
-        },
-        select: ['id', 'monto', 'fechaPago', 'tipoDocumento', 'numero']
-      })
+      qPendientes.getMany(),
+      qVencidas.getMany(),
+      qPagadas.getMany()
     ]);
 
     const totalPendiente = pendientes.reduce((sum, cxc) => sum + Number(cxc.monto), 0);
@@ -408,25 +450,12 @@ export const getResumenCxcsByCliente = async (req: Request, res: Response) => {
 
     res.json({
       resumen: {
-        pendientes: {
-          cantidad: pendientes.length,
-          total: totalPendiente
-        },
-        vencidas: {
-          cantidad: vencidas.length,
-          total: totalVencido
-        },
-        pagadas: {
-          cantidad: pagadas.length,
-          total: totalPagado
-        },
+        pendientes: { cantidad: pendientes.length, total: totalPendiente },
+        vencidas: { cantidad: vencidas.length, total: totalVencido },
+        pagadas: { cantidad: pagadas.length, total: totalPagado },
         totalGeneral: totalPendiente + totalVencido + totalPagado
       },
-      detalle: {
-        pendientes,
-        vencidas,
-        pagadas
-      }
+      detalle: { pendientes, vencidas, pagadas }
     });
   } catch (error) {
     console.error('Error al obtener resumen:', error);
@@ -441,32 +470,26 @@ export const getResumenCxcsByCliente = async (req: Request, res: Response) => {
  * Obtiene cuentas vencidas
  */
 export const getCxcsVencidas = async (req: Request, res: Response) => {
-  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
-
   try {
-    const { empresaId } = req.query as unknown as { empresaId?: number };
-    const where: any = {
-      estado: 'pendiente',
-      fechaVencimiento: LessThan(new Date())
-    };
+    const { empresaId: queryEmpresaId } = req.query;
+    const empresaId = req.user?.empresaId || (queryEmpresaId ? Number(queryEmpresaId) : undefined);
 
-    if (empresaId) {
-      where.empresaId = Number(empresaId);
-    }
+    if (!empresaId) return res.status(400).json({ message: 'Empresa ID requerido' });
 
-    const cxcsVencidas = await cxcRepository.find({
-      where,
-      relations: ['cliente'],
-      order: { fechaVencimiento: 'ASC' }
-    });
+    const table = getTableName(empresaId, 'cxcobrar');
+    const cxcs = await cxcRepository.createQueryBuilder('cxc')
+      .from(table, 'cxc')
+      .leftJoinAndMapOne('cxc.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
+      .where('cxc.estado = :estado', { estado: 'pendiente' })
+      .andWhere('cxc.fechaVencimiento < NOW()')
+      .andWhere('cxc.empresaId = :empresaId', { empresaId })
+      .orderBy('cxc.fechaVencimiento', 'ASC')
+      .getMany();
 
-    res.json(cxcsVencidas);
+    res.json(cxcs);
   } catch (error) {
     console.error('Error al obtener cuentas vencidas:', error);
-    res.status(500).json({
-      message: 'Error al obtener las cuentas vencidas',
-      error: error instanceof Error ? error.message : 'Error desconocido'
-    });
+    res.status(500).json({ message: 'Error', error: error instanceof Error ? error.message : 'Error desconocido' });
   }
 };
 
@@ -474,39 +497,30 @@ export const getCxcsVencidas = async (req: Request, res: Response) => {
  * Obtiene cuentas próximas a vencer
  */
 export const getCxcsPorVencer = async (req: Request, res: Response) => {
-  const cxcRepository = AppDataSource.getRepository(Cxcobrar);
-
   try {
-    const { empresaId, dias = 7 } = req.query as unknown as {
-      empresaId?: number;
-      dias?: number
-    };
+    const { dias = 7, empresaId: queryEmpresaId } = req.query as any;
+    const empresaId = req.user?.empresaId || (queryEmpresaId ? Number(queryEmpresaId) : undefined);
+
+    if (!empresaId) return res.status(400).json({ message: 'Empresa ID requerido' });
 
     const hoy = new Date();
     const fechaLimite = new Date();
     fechaLimite.setDate(hoy.getDate() + Number(dias));
 
-    const where: any = {
-      estado: 'pendiente',
-      fechaVencimiento: Between(hoy, fechaLimite)
-    };
+    const table = getTableName(empresaId, 'cxcobrar');
 
-    if (empresaId) {
-      where.empresaId = Number(empresaId);
-    }
+    const cxcs = await cxcRepository.createQueryBuilder('cxc')
+      .from(table, 'cxc')
+      .leftJoinAndMapOne('cxc.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
+      .where('cxc.estado = :estado', { estado: 'pendiente' })
+      .andWhere('cxc.fechaVencimiento BETWEEN :hoy AND :limite', { hoy, limite: fechaLimite })
+      .andWhere('cxc.empresaId = :empresaId', { empresaId })
+      .orderBy('cxc.fechaVencimiento', 'ASC')
+      .getMany();
 
-    const cxcsPorVencer = await cxcRepository.find({
-      where,
-      relations: ['cliente'],
-      order: { fechaVencimiento: 'ASC' }
-    });
-
-    res.json(cxcsPorVencer);
+    res.json(cxcs);
   } catch (error) {
     console.error('Error al obtener cuentas por vencer:', error);
-    res.status(500).json({
-      message: 'Error al obtener las cuentas por vencer',
-      error: error instanceof Error ? error.message : 'Error desconocido'
-    });
+    res.status(500).json({ message: 'Error', error: error instanceof Error ? error.message : 'Error desconocido' });
   }
 };

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { Cliente } from '../entities/Cliente';
+import { getTableName } from '../utils/tableName';
 
 const clienteRepository = AppDataSource.getRepository(Cliente);
 
@@ -28,8 +29,11 @@ export const getClientes = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    const queryBuilder = clienteRepository
-      .createQueryBuilder('cliente')
+    const tableName = getTableName(empresaId, 'cliente');
+
+    // Using alias 'cliente' linked to Cliente entity logic
+    const queryBuilder = clienteRepository.createQueryBuilder('cliente')
+      .from(tableName, 'cliente')
       .leftJoinAndSelect('cliente.vendedor', 'vendedor')
       .where('cliente.empresaId = :empresaId', { empresaId })
       .orderBy('cliente.nombre', 'ASC');
@@ -68,8 +72,10 @@ export const buscarClientes = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Parámetro de búsqueda requerido' });
     }
 
-    const queryBuilder = clienteRepository
-      .createQueryBuilder('cliente')
+    const tableName = getTableName(empresaId, 'cliente');
+
+    const queryBuilder = clienteRepository.createQueryBuilder('cliente')
+      .from(tableName, 'cliente')
       .leftJoinAndSelect('cliente.vendedor', 'vendedor')
       .where('cliente.empresaId = :empresaId', { empresaId })
       .andWhere(
@@ -110,13 +116,14 @@ export const getClienteById = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'ID de cliente inválido' });
     }
 
-    const cliente = await clienteRepository.findOne({
-      where: {
-        id: Number(id),
-        empresaId
-      },
-      relations: ['vendedor']
-    });
+    const tableName = getTableName(empresaId, 'cliente');
+
+    const cliente = await clienteRepository.createQueryBuilder('cliente')
+      .from(tableName, 'cliente')
+      .leftJoinAndSelect('cliente.vendedor', 'vendedor')
+      .where('cliente.internalId = :id', { id: Number(id) })
+      .andWhere('cliente.empresaId = :empresaId', { empresaId })
+      .getOne();
 
     if (!cliente) {
       return res.status(404).json({ message: 'Cliente no encontrado' });
@@ -141,25 +148,36 @@ export const createCliente = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
+    const tableName = getTableName(empresaId, 'cliente');
+
     // Verificar código único por empresa
-    const existingCliente = await clienteRepository.findOne({
-      where: {
-        codigo: req.body.codigo,
-        empresaId
-      }
-    });
+    const existingCliente = await clienteRepository.createQueryBuilder('cliente')
+      .from(tableName, 'cliente')
+      .where('cliente.codigo = :codigo', { codigo: req.body.codigo })
+      .andWhere('cliente.empresaId = :empresaId', { empresaId })
+      .getOne();
 
     if (existingCliente) {
       return res.status(400).json({ message: 'El código de cliente ya existe' });
     }
 
-    const cliente = clienteRepository.create({
-      ...req.body,
-      empresaId
-    });
+    const insertResult = await clienteRepository.createQueryBuilder()
+      .insert()
+      .into(tableName)
+      .values({
+        ...req.body,
+        empresaId: empresaId
+      })
+      .execute();
 
-    const resultado = await clienteRepository.save(cliente);
-    res.status(201).json(resultado);
+    const newId = insertResult.identifiers[0].internalId || insertResult.raw.insertId;
+
+    const nuevoCliente = await clienteRepository.createQueryBuilder('cliente')
+      .from(tableName, 'cliente')
+      .where('cliente.internalId = :id', { id: Number(newId) })
+      .getOne();
+
+    res.status(201).json(nuevoCliente);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al crear cliente:', error);
@@ -179,12 +197,13 @@ export const updateCliente = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    const cliente = await clienteRepository.findOne({
-      where: {
-        id: Number(id),
-        empresaId
-      }
-    });
+    const tableName = getTableName(empresaId, 'cliente');
+
+    const cliente = await clienteRepository.createQueryBuilder('cliente')
+      .from(tableName, 'cliente')
+      .where('cliente.internalId = :id', { id: Number(id) })
+      .andWhere('cliente.empresaId = :empresaId', { empresaId })
+      .getOne();
 
     if (!cliente) {
       return res.status(404).json({ message: 'Cliente no encontrado' });
@@ -192,22 +211,30 @@ export const updateCliente = async (req: Request, res: Response) => {
 
     // Verificar código único si se está actualizando
     if (req.body.codigo && req.body.codigo !== cliente.codigo) {
-      const existingCliente = await clienteRepository.findOne({
-        where: {
-          codigo: req.body.codigo,
-          empresaId
-        }
-      });
+      const existingCliente = await clienteRepository.createQueryBuilder('cliente')
+        .from(tableName, 'cliente')
+        .where('cliente.codigo = :codigo', { codigo: req.body.codigo })
+        .andWhere('cliente.empresaId = :empresaId', { empresaId })
+        .getOne();
 
       if (existingCliente) {
         return res.status(400).json({ message: 'El código de cliente ya existe' });
       }
     }
 
-    clienteRepository.merge(cliente, req.body);
-    const resultado = await clienteRepository.save(cliente);
+    await clienteRepository.createQueryBuilder()
+      .update(tableName)
+      .set(req.body)
+      .where('xxx = :id', { id: Number(id) })
+      .andWhere('id = :empresaId', { empresaId })
+      .execute();
 
-    res.json(resultado);
+    const clienteActualizado = await clienteRepository.createQueryBuilder('cliente')
+      .from(tableName, 'cliente')
+      .where('cliente.internalId = :id', { id: Number(id) })
+      .getOne();
+
+    res.json(clienteActualizado);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     console.error('Error al actualizar cliente:', error);
@@ -227,10 +254,14 @@ export const deleteCliente = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'No se ha especificado la empresa' });
     }
 
-    const resultado = await clienteRepository.delete({
-      id: Number(id),
-      empresaId
-    });
+    const tableName = getTableName(empresaId, 'cliente');
+
+    const resultado = await clienteRepository.createQueryBuilder()
+      .delete()
+      .from(tableName)
+      .where('xxx = :id', { id: Number(id) })
+      .andWhere('id = :empresaId', { empresaId })
+      .execute();
 
     if (resultado.affected === 0) {
       return res.status(404).json({ message: 'Cliente no encontrado' });

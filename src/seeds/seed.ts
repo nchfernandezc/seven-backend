@@ -1,233 +1,201 @@
 // src/seeds/seed.ts
 import { AppDataSource } from '../config/database';
-import { Cliente } from '../entities/Cliente';
 import { Articulo } from '../entities/Articulo';
+import { Cliente } from '../entities/Cliente';
 import { Cxcobrar } from '../entities/Cxcobrar';
 import { Pedido } from '../entities/Pedido';
-import { Vendedor } from '../entities/Vendedor';
-import { Empresa } from '../entities/Empresa';
-import { SyncLog } from '../entities/SyncLog';
+import { EntityMetadata } from 'typeorm';
 
-async function clearDatabase() {
-  const queryRunner = AppDataSource.createQueryRunner();
+// Generate CREATE TABLE SQL dynamically based on Entity Metadata and a prefix
+function generateCreateTableSql(metadata: EntityMetadata, tableName: string): string {
+  const columns = metadata.columns.map(col => {
+    let colSql = `\`${col.databaseName}\` `;
 
-  try {
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    let type = 'VARCHAR(255)';
 
-    console.log('Vaciando tablas en orden...');
+    // CORRECCIÓN: Detectar explícitamente PKs generadas e IDs como INT
+    if ((col.isPrimary && col.isGenerated) || col.databaseName === 'xxx' || col.databaseName === 'id' || col.propertyName === 'empresaId') {
+      type = 'INT';
+    }
+    else if (col.type === 'int') type = 'INT';
+    else if (col.type === 'decimal') type = `DECIMAL(${col.precision || 18},${col.scale || 2})`;
+    else if (col.type === 'varchar') type = `VARCHAR(${col.length || 255})`;
+    else if (col.type === 'text') type = 'TEXT';
+    else if (col.type === 'datetime') type = 'DATETIME';
+    else if (col.type === 'date') type = 'DATE';
+    else if (col.type === 'boolean') type = 'TINYINT(1)';
 
-    // Orden de eliminación basado en las relaciones
-    const tablesInOrder = [
-      'pedidos',
-      'cxcobrar',
-      'articulos',
-      'clientes',
-      'vendedores',
-      'empresas',
-      'sync_logs'
-    ];
+    colSql += type;
 
-    // Desactivar temporalmente las restricciones
-    await queryRunner.query('SET CONSTRAINTS ALL DEFERRED;');
+    if (!col.isNullable) colSql += ' NOT NULL';
 
-    for (const tableName of tablesInOrder) {
-      try {
-        console.log(`Vaciando tabla: ${tableName}`);
-        await queryRunner.query(`DELETE FROM "${tableName}";`);
-
-        // Intentar resetear la secuencia si existe
-        try {
-          await queryRunner.query(`ALTER SEQUENCE IF EXISTS "${tableName}_id_seq" RESTART WITH 1;`);
-        } catch (seqError) {
-          console.log(`No se pudo resetear la secuencia para ${tableName}`);
-        }
-
-        console.log(`✓ Tabla ${tableName} vaciada correctamente`);
-      } catch (error) {
-        console.error(`Error al vaciar la tabla ${tableName}:`, error);
-        throw error;
-      }
+    if (col.default !== undefined) {
+      if (typeof col.default === 'string') colSql += ` DEFAULT '${col.default}'`;
+      else colSql += ` DEFAULT ${col.default}`;
+    } else if (col.isNullable) {
+      colSql += ' DEFAULT NULL';
     }
 
-    await queryRunner.commitTransaction();
-    console.log('Base de datos limpiada exitosamente');
-
-  } catch (error) {
-    await queryRunner.rollbackTransaction();
-    console.error('Error al limpiar la base de datos:', error);
-    throw error;
-  } finally {
-    try {
-      await queryRunner.query('SET CONSTRAINTS ALL IMMEDIATE;');
-    } finally {
-      await queryRunner.release();
+    if (col.isGenerated && col.generationStrategy === 'increment') {
+      colSql += ' AUTO_INCREMENT';
     }
+
+    return colSql;
+  });
+
+  const pkCols = metadata.primaryColumns.map(c => `\`${c.databaseName}\``).join(', ');
+  if (pkCols) {
+    columns.push(`PRIMARY KEY (${pkCols})`);
   }
+
+  return `CREATE TABLE IF NOT EXISTS \`${tableName}\` (${columns.join(', ')});`;
 }
 
 async function seedDatabase() {
   const queryRunner = AppDataSource.createQueryRunner();
 
   try {
-    // Inicializar la conexión
     await AppDataSource.initialize();
     console.log('Conexión a la base de datos establecida');
 
-    // Limpiar la base de datos antes de insertar
-    await clearDatabase();
-
-    // Iniciar transacción para la inserción de datos
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    await queryRunner.query('SET CONSTRAINTS ALL DEFERRED;');
+    await queryRunner.query('SET FOREIGN_KEY_CHECKS = 0;');
+    await queryRunner.query("SET SESSION sql_mode='NO_AUTO_VALUE_ON_ZERO';");
 
     try {
-      // Obtener los repositorios
-      const empresaRepository = queryRunner.manager.getRepository(Empresa);
-      const vendedorRepository = queryRunner.manager.getRepository(Vendedor);
-      const clienteRepository = queryRunner.manager.getRepository(Cliente);
-      const articuloRepository = queryRunner.manager.getRepository(Articulo);
-      const cxcRepository = queryRunner.manager.getRepository(Cxcobrar);
-      const pedidoRepository = queryRunner.manager.getRepository(Pedido);
-      const syncLogRepository = queryRunner.manager.getRepository(SyncLog);
+      console.log('1. Preparando tablas estáticas (empresas, vendedores)...');
+      // Aseguramos que existan las tablas estáticas
+      await queryRunner.query(`DELETE FROM empresas`);
+      await queryRunner.query(`ALTER TABLE empresas AUTO_INCREMENT = 1`);
+      await queryRunner.query(`DELETE FROM vendedores`);
+      await queryRunner.query(`ALTER TABLE vendedores AUTO_INCREMENT = 1`);
 
-      // 1. Crear empresa
-      const empresa = empresaRepository.create({
-        nombre: 'Empresa Demo',
-        identificacion: 'J-123456789',
-        direccion: 'Av. Principal #123',
-        telefono: '02121234567',
-        lastSyncedAt: new Date(),
-        isDeleted: false,
-        deviceId: 'seed-script'
-      });
-      await empresaRepository.save(empresa);
-      console.log('✓ Empresa creada');
+      // Insertar Empresa 1
+      console.log('   - Creando Empresa "Seven App Demo" (ID: 1)...');
+      await queryRunner.query(`
+            INSERT INTO empresas (id, nombre, identificacion, direccion, telefono, created_at, updated_at)
+            VALUES (1, 'Seven App Demo', '001', 'Dirección Local', '555-0001', NOW(), NOW())
+        `);
 
-      // 2. Crear vendedor
-      const vendedor = vendedorRepository.create({
-        codigo: 'VEN001',
-        nombre: 'Juan Pérez',
-        telefono: '04141234567',
-        empresaId: empresa.id,
-        lastSyncedAt: new Date(),
-        isDeleted: false,
-        deviceId: 'seed-script'
-      });
-      await vendedorRepository.save(vendedor);
-      console.log('✓ Vendedor creado');
+      // Insertar Vendedor VEN001
+      console.log('   - Creando Vendedor "VEN001" (Login)...');
+      await queryRunner.query(`
+            INSERT INTO vendedores (id, nombre, codigo, empresa_id, created_at, updated_at)
+            VALUES (1, 'Usuario Demo', 'VEN001', 1, NOW(), NOW())
+        `);
 
-      // 3. Crear cliente
-      const cliente1 = clienteRepository.create({
-        codigo: 'CLI001',
-        nombre: 'Cliente Uno',
-        direccion: 'Calle 1 #2-3',
-        telefono: '04141234568',
-        vendedorCodigo: vendedor.codigo,
-        empresaId: empresa.id,
-        lastSyncedAt: new Date(),
-        isDeleted: false,
-        deviceId: 'seed-script'
-      });
-      await clienteRepository.save(cliente1);
-      console.log('✓ Cliente creado');
+      // Insertar Vendedor 07 (Referenciado en los pedidos de ejemplo)
+      console.log('   - Creando Vendedor "07" (Referencias)...');
+      await queryRunner.query(`
+            INSERT INTO vendedores (id, nombre, codigo, empresa_id, created_at, updated_at)
+            VALUES (2, 'Vendedor Referencia', '07', 1, NOW(), NOW())
+        `);
 
-      // 4. Crear artículo
-      const articulo1 = articuloRepository.create({
-        codigo: 'ART001',
-        descripcion: 'Producto de ejemplo 1',
-        cantidad: 100,
-        precio: 100.00,
-        marca: 'Marca1',
-        clase: 'Clase1',
-        empresaId: empresa.id,
-        lastSyncedAt: new Date(),
-        isDeleted: false,
-        deviceId: 'seed-script'
-      });
-      await articuloRepository.save(articulo1);
-      console.log('✓ Artículo creado');
+      // --- PROCESO PARA EMPRESA 001 ---
+      const companyId = '001';
+      const companyIdInt = 1;
 
-      // 5. Crear pedido
-      const pedido = pedidoRepository.create({
-        numero: 'PED-001',
-        articuloCodigo: articulo1.codigo,
-        cantidad: 2,
-        precioVenta: 100.00,
-        clienteCodigo: cliente1.codigo,
-        estado: 1, // 1: Pendiente
-        fecha: new Date(),
-        usuario: 'admin',
-        indice: 1,
-        empresaId: empresa.id,
-        lastSyncedAt: new Date(),
-        isDeleted: false,
-        deviceId: 'seed-script'
-      });
-      await pedidoRepository.save(pedido);
-      console.log('✓ Pedido creado');
+      console.log(`2. Configurando tablas dinámicas para empresa ${companyId}...`);
 
-      // 6. Crear cuenta por cobrar
-      const cxc = cxcRepository.create({
-        tipoDocumento: 'FAC',
-        numero: 1001,
-        monto: 200.00,
-        saldo: 200.00,
-        clienteCodigo: cliente1.codigo,
-        fecha: new Date(),
-        empresaId: empresa.id,
-        lastSyncedAt: new Date(),
-        isDeleted: false,
-        deviceId: 'seed-script'
-      });
-      await cxcRepository.save(cxc);
-      console.log('✓ Cuenta por cobrar creada');
+      const dynamicTables = [
+        { entity: Articulo, name: `${companyId}_articulo` },
+        { entity: Cliente, name: `${companyId}_cliente` },
+        { entity: Cxcobrar, name: `${companyId}_cxc` },
+        { entity: Pedido, name: `${companyId}_pedido` }
+      ];
 
-      // 7. Crear log de sincronización
-      const syncLog = syncLogRepository.create({
-        entityName: 'empresa',
-        entityId: empresa.id,
-        operation: 'CREATE',
-        deviceId: 'seed-script',
-        isSynced: true
-      });
-      await syncLogRepository.save(syncLog);
-      console.log('✓ Log de sincronización creado');
+      for (const tbl of dynamicTables) {
+        const metadata = AppDataSource.getMetadata(tbl.entity);
+        const createSql = generateCreateTableSql(metadata, tbl.name);
+
+        await queryRunner.query(`DROP TABLE IF EXISTS \`${tbl.name}\``);
+        await queryRunner.query(createSql);
+        console.log(`   - Tabla ${tbl.name} recreada.`);
+      }
+
+      console.log('3. Insertando datos de prueba en tablas dinámicas...');
+
+      // 1. Articulos (Creando todos los productos necesarios para los pedidos)
+      console.log('   - Insertando Artículos...');
+      const articulosData = [
+        `('52077210', 'GOTAS CHOCOLATE LECHE 250 GR', 3.00, 10.00)`,
+        `('J02136', 'SALCHICHA T/VIENA ARICHUNA 450GRX12UND', 52.47, 100.00)`,
+        `('A02004', 'PIERNA ARICHUNA 4X5.9KG', 13.00, 50.00)`,
+        `('B02003', 'ESPALDA VIGOR 4X5.1KG', 6.86, 40.00)`,
+        `('A02067', 'JAMON PIERNA FELIZ GIIOS', 7.96, 30.00)`
+      ];
+
+      for (const art of articulosData) {
+        // Parseamos manualmente para flexibilidad
+        // art es un string "(code, name, price, stock)"
+        const parts = art.replace(/[()']/g, '').split(', ');
+        const code = parts[0];
+        const name = parts[1];
+        const price = parts[2];
+
+        await queryRunner.query(`
+                INSERT INTO \`${companyId}_articulo\` (id, ccod, cdet, npre1, ncan1, cuni, ccodx, cmod, cusu, cmaq, npre2, npre3, npre4, npre5, npre6, npor1, npor2, ncos, ncan2, ncan3, itip, cref, iiva, cdep, ccla, ccol, cmar, ncan4, npes, ndolar, ivid, imix, cpre, cubi, cest, cniv, cpos, cfor1, cfor2, cfor3, cfor4, iroj, icon, nroj, ncan5, ncan7, ncan8, ncan9, ncan10, ncan11, ncan12, ivac, ipal, ifis, ific, ides, ncan6, ihas, ista, isube, dfec)
+                VALUES (${companyIdInt}, '${code}', '${name}', ${price}, 100, '', '', '', 'ADMIN', 'LOCALHOST', 0,0,0,0,0, 0.01, 0, 1.00, 0,0, 1, '', 0, '', '', '', '', 0, 0, 0, 0, 0, '', '', '', '', '', '', '', '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '2025-01-01 00:00:00')
+             `);
+      }
+
+      // 2. Cliente (Usaremos código 'CL001' para consistencia)
+      console.log('   - Insertando Cliente Consistente...');
+      const clienteCodigo = 'CL001';
+      await queryRunner.query(`
+          INSERT INTO \`${companyId}_cliente\` (id, ccod, cdet, cdir, ctel, cven, crif, cruc, cmai, ccon, ctvt, czon, ccir, csup, csada, iblo, imas, itas, dfecn, dfec, nfle, ndes, icon, idob, igec, iprt, isube, ivip, ipag, ifor, iequ, ican, ccoc, cblo, icos, ifre, isec, clat, clon, cenc, nlim, i_lun, i_mar, i_mie, i_jue, i_vie, cciu, isup, ccan, ccal, csec, cmov, cban1, cnum1, cban2, cnum2, cban3, cnum3, isuc, ise, ista, cpur, ccas, ific, cvia1, cvia2, cpro, ipve, npve, cpve, cven1, csup1, cent1, cven2, csup2, cent2, clave, ncom1) 
+          VALUES (${companyIdInt}, '${clienteCodigo}', 'CLIENTE DEMOSTRACION', 'AV. PRINCIPAL', '0414-1234567', 'VEN001', 'J-12345678-9', '', 'cliente@demo.com', '', '', '', 'VEN001', '', '', 0, 0, 0, '2000-01-01', '2025-01-01 00:00:00', 0.00, 0.00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', 0, 0, 0, '', '', '', 1000.00, 0, 0, 0, 0, 0, 'CIUDAD', 0, '', '', '', '', '', '', '', '', '', '', 0, 0, 0, '', '', 0, '', '', '', 0, 0.00, '', '', '', '', '', '', '', '', 0.00)
+        `);
+
+      // 3. CxC (Asociada al cliente CL001)
+      console.log('   - Insertando Cuenta por Cobrar...');
+      await queryRunner.query(`
+          INSERT INTO \`${companyId}_cxc\` (id, cdoc, ccli, inum, nnet, niva, dfec, nsal, idia, ista, ival, iprt, ifis, ccon, cven, iafe, cafe, ifor, cinf, cnro, nret1, nret2, cnro1, cnro2, ipp, isube, nexe, nnetyx, nivax, nsalx, nexex, itip, ipag, imon, idoc, imar, cfac, cnum, cche, cfr1, cfr2, cdet, dven, dfac, nsal2, nbolivar, ndolar, crel, cusu, csuc) 
+          VALUES (${companyIdInt}, 'FAC', '${clienteCodigo}', 5001, 100.00, 16.00, '2025-01-05 00:00:00', 116.00, 0, 0, 0, 0, 0, '', 'VEN001', 0, '', 0, '', '', 0, 0, '', '', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '', '', '', '', 'FACTURA PENDIENTE', NULL, NULL, 0, 0, 0, '', 'ADMIN', '01')
+        `);
+
+      // 4. Pedidos (Pedido único 'PED-1010' con múltiples items, asociado a CL001)
+      console.log('   - Insertando Pedido con múltiples items...');
+      const pedidoNum = 'PED-1010';
+      // (num, ven, cod, des, cantidad, precio)
+      const itemsPedido = [
+        `('${pedidoNum}', 'VEN001', 'J02136', 'SALCHICHA T/VIENA', 2, 52.47)`, // Item 1
+        `('${pedidoNum}', 'VEN001', 'A02004', 'PIERNA ARICHUNA', 1, 13.00)`,   // Item 2
+        `('${pedidoNum}', 'VEN001', '52077210', 'GOTAS CHOCOLATE', 5, 3.00)`   // Item 3
+      ];
+
+      for (const item of itemsPedido) {
+        const parts2 = item.replace(/[()']/g, '').split(', ');
+        const pNum = parts2[0];
+        const pVen = parts2[1];
+        const pCod = parts2[2];
+        const pDes = parts2[3];
+        const pCan = parts2[4];
+        const pPre = parts2[5];
+
+        await queryRunner.query(`
+              INSERT INTO \`${companyId}_pedido\` (num, ven, cod, des, can, pre, cli, id, fic, obs, ctra, ccho, cayu, cche, cdep, cdes, rep, ibul, ihor1, cusu, ifac, nmon, ngra, ntax, pvp, pcli, pvol, bac, ndolar, dfec, dgui, iprt, itip, ifor, imar, igui, iprefac, imin1, iam1, ihor2, imin2, iam2) 
+              VALUES ('${pNum}', '${pVen}', '${pCod}', '${pDes}', ${pCan}, ${pPre}, '${clienteCodigo}', ${companyIdInt}, '', 'Pedido multi-item demo', '', '', '', '', '', '', '', 0, 0, 'ADMIN', 0, 0, 0, 0, 0, 0, 0, 0, 0, '2025-01-09 00:00:00', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+            `);
+      }
 
       await queryRunner.commitTransaction();
-      console.log('✅ Datos de prueba insertados correctamente');
+      console.log(`✅ Base de datos Consistentemente restaurada para empresa ${companyId}.`);
 
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      console.error('Error al insertar datos de prueba:', error);
+      console.error('❌ Error en seed:', error);
       throw error;
     }
   } catch (error) {
-    console.error('Error en el proceso de seed:', error);
-    throw error;
+    console.error('Error general:', error);
   } finally {
     try {
-      if (queryRunner) {
-        await queryRunner.query('SET CONSTRAINTS ALL IMMEDIATE;');
-        await queryRunner.release();
-      }
-      if (AppDataSource.isInitialized) {
-        await AppDataSource.destroy();
-      }
-    } catch (e) {
-      console.error('Error al liberar recursos:', e);
-    }
+      await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1;');
+    } catch (e) { }
+    if (AppDataSource.isInitialized) await AppDataSource.destroy();
   }
 }
 
-// Ejecutar el seed
-seedDatabase()
-  .then(() => {
-    console.log('✅ Proceso de seed completado exitosamente');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('❌ Error durante el proceso de seed:', error);
-    process.exit(1);
-  });
+seedDatabase();
