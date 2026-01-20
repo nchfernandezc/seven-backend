@@ -5,6 +5,30 @@ const cliente_controller_1 = require("../controllers/cliente.controller");
 const router = (0, express_1.Router)();
 /**
  * @swagger
+ * /clientes/buscar:
+ *   get:
+ *     summary: Busca clientes por término
+ *     tags: [Clientes]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Término de búsqueda (nombre o código)
+ *     responses:
+ *       200:
+ *         description: Lista de clientes encontrados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Cliente'
+ */
+router.get('/buscar', cliente_controller_1.buscarClientes);
+/**
+ * @swagger
  * tags:
  *   name: Clientes
  *   description: Gestión de clientes

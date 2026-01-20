@@ -1,0 +1,15 @@
+meta {
+  name: Eliminar Vendedor
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/vendedores/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: 1
+}

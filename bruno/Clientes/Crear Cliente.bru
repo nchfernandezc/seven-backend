@@ -1,0 +1,19 @@
+meta {
+  name: Crear Cliente
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/clientes
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "C-002",
+    "nombre": "Cliente Nuevo",
+    "telefono": "555-0101"
+  }
+}

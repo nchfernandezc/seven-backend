@@ -1,0 +1,9 @@
+{
+    "version": "1",
+    "name": "Seven Backend API",
+    "type": "collection",
+    "ignore": [
+        ".git",
+        "node_modules"
+    ]
+}

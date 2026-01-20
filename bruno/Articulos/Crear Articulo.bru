@@ -1,0 +1,19 @@
+meta {
+  name: Crear Articulo
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/articulos
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "TEST-001",
+    "nombre": "Articulo de prueba",
+    "precio": 100
+  }
+}

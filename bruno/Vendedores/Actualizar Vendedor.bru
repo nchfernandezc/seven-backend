@@ -1,0 +1,21 @@
+meta {
+  name: Actualizar Vendedor
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/vendedores/:id
+  body: json
+  auth: none
+}
+
+params:path {
+  id: 1
+}
+
+body:json {
+  {
+    "nombre": "Vendedor Actualizado"
+  }
+}

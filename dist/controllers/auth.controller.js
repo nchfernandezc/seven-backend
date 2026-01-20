@@ -4,6 +4,9 @@ exports.validarVendedor = void 0;
 const database_1 = require("../config/database");
 const Vendedor_1 = require("../entities/Vendedor");
 const vendedorRepository = database_1.AppDataSource.getRepository(Vendedor_1.Vendedor);
+/**
+ * Valida las credenciales de un vendedor
+ */
 const validarVendedor = async (req, res) => {
     try {
         const { empresaId, numeroVendedor } = req.params;
@@ -17,7 +20,7 @@ const validarVendedor = async (req, res) => {
         if (!vendedor) {
             return res.status(404).json({
                 success: false,
-                message: 'Vendedor no encontrado o no pertenece a la empresa'
+                message: 'Vendedor no encontrado'
             });
         }
         res.json({

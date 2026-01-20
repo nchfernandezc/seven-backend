@@ -1,0 +1,26 @@
+meta {
+  name: Push Changes
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/sync/push
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "deviceId": "device-001",
+    "changes": [
+      {
+        "entity": "pedido",
+        "operation": "create",
+        "data": {
+          "id": 1
+        }
+      }
+    ]
+  }
+}

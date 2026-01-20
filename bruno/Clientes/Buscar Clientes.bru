@@ -1,0 +1,15 @@
+meta {
+  name: Buscar Clientes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/clientes/buscar?q=Juan
+  body: none
+  auth: none
+}
+
+params:query {
+  q: Juan
+}

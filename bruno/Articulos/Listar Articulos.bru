@@ -1,0 +1,16 @@
+meta {
+  name: Listar Articulos
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/articulos
+  body: none
+  auth: none
+}
+
+headers {
+  x-company-id: 1
+  x-salesperson-id: VEN001
+}

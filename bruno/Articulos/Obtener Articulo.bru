@@ -1,0 +1,15 @@
+meta {
+  name: Obtener Articulo
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/articulos/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: 1
+}

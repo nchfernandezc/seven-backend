@@ -1,0 +1,16 @@
+meta {
+  name: Validar Vendedor
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/auth/validar-vendedor/:empresaId/:numeroVendedor
+  body: none
+  auth: none
+}
+
+params:path {
+  empresaId: 1
+  numeroVendedor: VEN001
+}

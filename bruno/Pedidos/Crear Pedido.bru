@@ -1,0 +1,22 @@
+meta {
+  name: Crear Pedido
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/pedidos
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "numero": "PED-001",
+    "articuloCodigo": "TEST-001",
+    "cantidad": 10,
+    "precioVenta": 100,
+    "clienteCodigo": "C-001",
+    "usuario": "vendedor1"
+  }
+}

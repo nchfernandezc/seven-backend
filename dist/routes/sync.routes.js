@@ -2,7 +2,7 @@
 // Update src/routes/sync.routes.ts with Swagger documentation
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const SyncController_1 = require("../controllers/SyncController");
+const sync_controller_1 = require("../controllers/sync.controller");
 const Articulo_1 = require("../entities/Articulo");
 const Cliente_1 = require("../entities/Cliente");
 const Cxcobrar_1 = require("../entities/Cxcobrar");
@@ -11,7 +11,7 @@ const Pedido_1 = require("../entities/Pedido");
 const Vendedor_1 = require("../entities/Vendedor");
 const router = (0, express_1.Router)();
 // Register all entities that need synchronization
-SyncController_1.SyncController.registerEntities({
+sync_controller_1.SyncController.registerEntities({
     articulo: Articulo_1.Articulo,
     cliente: Cliente_1.Cliente,
     cxcobrar: Cxcobrar_1.Cxcobrar,
@@ -51,7 +51,7 @@ SyncController_1.SyncController.registerEntities({
  *                   type: string
  *                   description: Token to be used for subsequent sync operations
  */
-router.post('/sync/init', SyncController_1.SyncController.initSync);
+router.post('/sync/init', sync_controller_1.SyncController.initSync);
 /**
  * @swagger
  * /api/sync/push:
@@ -111,7 +111,7 @@ router.post('/sync/init', SyncController_1.SyncController.initSync);
  *                       error:
  *                         type: string
  */
-router.post('/sync/push', SyncController_1.SyncController.pushChanges);
+router.post('/sync/push', sync_controller_1.SyncController.pushChanges);
 /**
  * @swagger
  * /api/sync/pull:
@@ -153,5 +153,5 @@ router.post('/sync/push', SyncController_1.SyncController.pushChanges);
  *                   type: string
  *                   description: Token to be used for the next sync
  */
-router.post('/sync/pull', SyncController_1.SyncController.pullChanges);
+router.post('/sync/pull', sync_controller_1.SyncController.pullChanges);
 exports.default = router;

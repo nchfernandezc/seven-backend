@@ -5,7 +5,10 @@ const typeorm_1 = require("typeorm");
 const dotenv_1 = require("dotenv");
 // Load environment variables
 (0, dotenv_1.config)();
-// PostgreSQL configuration for Render
+// Determinar qué configuración usar basada en el entorno
+const isProduction = process.env.NODE_ENV === 'production';
+const usePostgres = isProduction || process.env.DB_TYPE === 'postgres';
+// Configuración para PostgreSQL (Producción)
 const postgresConfig = {
     type: 'postgres',
     host: process.env.DB_HOST,
@@ -14,9 +17,9 @@ const postgresConfig = {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
     entities: [__dirname + "/../entities/*.{js,ts}"],
-    synchronize: process.env.NODE_ENV !== 'production' || process.env.DB_SYNCHRONIZE === 'true',
-    logging: process.env.NODE_ENV !== 'production',
-    ssl: process.env.NODE_ENV === 'production' ? {
+    synchronize: process.env.DB_SYNCHRONIZE === 'true',
+    logging: process.env.DB_LOGGING === 'true',
+    ssl: usePostgres ? {
         rejectUnauthorized: false
     } : false,
     extra: {
@@ -28,19 +31,43 @@ const postgresConfig = {
         query_timeout: 10000,
     }
 };
+// Configuración para MySQL (Desarrollo Local)
+const mysqlConfig = {
+    type: 'mysql',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '3306'),
+    username: process.env.DB_USERNAME || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_DATABASE || 'sistema_local',
+    entities: [__dirname + "/../entities/*.{js,ts}"],
+    synchronize: process.env.DB_SYNCHRONIZE === 'true',
+    logging: process.env.DB_LOGGING === 'true',
+    extra: {
+        connectionLimit: 5,
+        acquireTimeout: 10000,
+        timeout: 10000,
+    }
+};
+// Seleccionar la configuración apropiada
+const databaseConfig = usePostgres ? postgresConfig : mysqlConfig;
 // Create the DataSource instance
-exports.AppDataSource = new typeorm_1.DataSource(postgresConfig);
+exports.AppDataSource = new typeorm_1.DataSource(databaseConfig);
 // Function to initialize the database connection
+// Función para inicializar la conexión a la base de datos
 const initializeDatabase = async () => {
+    const currentConfig = usePostgres ? postgresConfig : mysqlConfig;
+    const dbType = usePostgres ? 'PostgreSQL' : 'MySQL';
     console.log('🔍 Database Configuration:');
-    console.log(`📡 Host: ${postgresConfig.host}`);
-    console.log(`📊 Database: ${postgresConfig.database}`);
-    console.log(`🔄 Synchronize: ${postgresConfig.synchronize}`);
-    console.log(`📝 Logging: ${postgresConfig.logging}`);
+    console.log(`🛢️  Database Type: ${dbType}`);
+    console.log(`📡 Host: ${currentConfig.host}`);
+    console.log(`📊 Database: ${currentConfig.database}`);
+    console.log(`👤 User: ${currentConfig.username}`);
+    console.log(`🔄 Synchronize: ${currentConfig.synchronize}`);
+    console.log(`📝 Logging: ${currentConfig.logging}`);
     try {
         if (!exports.AppDataSource.isInitialized) {
             await exports.AppDataSource.initialize();
-            console.log('✅ Successfully connected to the database');
+            console.log(`✅ Successfully connected to ${dbType} database`);
             console.log('🔗 Connection established successfully');
         }
         else {
@@ -49,10 +76,10 @@ const initializeDatabase = async () => {
         return exports.AppDataSource;
     }
     catch (error) {
-        console.error('❌ Database connection error:');
+        console.error(`❌ ${dbType} connection error:`);
         if (error instanceof Error) {
             console.error('📌 Message:', error.message);
-            // Show only the first few lines of the stack trace
+            // Mostrar solo las primeras líneas del stack trace
             if (error.stack) {
                 const stackLines = error.stack.split('\n');
                 console.error('🔍 Stack:', stackLines.slice(0, 5).join('\n'));
@@ -61,13 +88,14 @@ const initializeDatabase = async () => {
         else {
             console.error('Unknown error:', error);
         }
-        // Add troubleshooting tips
+        // Agregar consejos para solucionar problemas
         console.log('\n🔧 Troubleshooting tips:');
-        console.log('1. Verify your database credentials in .env');
-        console.log('2. Check if the database server is running and accessible');
-        console.log('3. Ensure your IP is whitelisted in Render database settings');
-        console.log('4. Check if the database exists and the user has proper permissions');
-        throw error; // Re-throw to be handled by the caller
+        console.log('1. Verifica las credenciales de la base de datos en .env');
+        console.log('2. Verifica si el servidor de base de datos está en ejecución');
+        console.log('3. Asegúrate de que la base de datos exista y el usuario tenga permisos');
+        console.log('4. Para MySQL: Verifica que el servicio MySQL esté en ejecución');
+        console.log('5. Para PostgreSQL: Verifica que el servicio PostgreSQL esté en ejecución');
+        throw error; // Re-lanzar para que lo maneje el llamador
     }
 };
 exports.initializeDatabase = initializeDatabase;

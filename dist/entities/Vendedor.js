@@ -14,6 +14,11 @@ const typeorm_1 = require("typeorm");
 const BaseModel_1 = require("./BaseModel");
 const Empresa_1 = require("./Empresa");
 const Cliente_1 = require("./Cliente");
+/**
+ * Entidad 'Vendedor'
+ * Representa a los agentes de ventas de la empresa.
+ * Se asocia con múltiples clientes.
+ */
 let Vendedor = class Vendedor extends BaseModel_1.BaseModel {
 };
 exports.Vendedor = Vendedor;

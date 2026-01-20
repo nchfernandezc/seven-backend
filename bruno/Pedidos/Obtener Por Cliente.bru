@@ -1,0 +1,15 @@
+meta {
+  name: Obtener Por Cliente
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/pedidos/cliente/:clienteId
+  body: none
+  auth: none
+}
+
+params:path {
+  clienteId: C-001
+}

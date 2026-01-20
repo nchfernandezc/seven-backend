@@ -12,6 +12,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SyncLog = void 0;
 const typeorm_1 = require("typeorm");
 const BaseModel_1 = require("./BaseModel");
+/**
+ * Entidad 'SyncLog'
+ * Registro de sincronización para controlar cambios entre dispositivos y servidor.
+ * Almacena operaciones (CREATE, UPDATE, DELETE) pendientes o realizadas.
+ */
 let SyncLog = class SyncLog extends BaseModel_1.BaseModel {
 };
 exports.SyncLog = SyncLog;

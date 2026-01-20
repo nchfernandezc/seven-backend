@@ -1,0 +1,15 @@
+meta {
+  name: Eliminar Cliente
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/api/clientes/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: C-002
+}

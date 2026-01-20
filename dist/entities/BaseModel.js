@@ -11,6 +11,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BaseModel = void 0;
 const typeorm_1 = require("typeorm");
+/**
+ * Clase base abstracta 'BaseModel'
+ * Proporciona campos comunes como id, fechas de creación/actualización y sincronización.
+ * Todas las entidades deben extender de esta clase.
+ */
 class BaseModel extends typeorm_1.BaseEntity {
     constructor() {
         super(...arguments);
@@ -31,7 +36,7 @@ __decorate([
     __metadata("design:type", Date)
 ], BaseModel.prototype, "updatedAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'last_synced_at', type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ name: 'last_synced_at', type: 'datetime', nullable: true }),
     __metadata("design:type", Date)
 ], BaseModel.prototype, "lastSyncedAt", void 0);
 __decorate([

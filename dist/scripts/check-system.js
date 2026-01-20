@@ -1,0 +1,99 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = require("../config/database");
+const Empresa_1 = require("../entities/Empresa");
+const Vendedor_1 = require("../entities/Vendedor");
+const Articulo_1 = require("../entities/Articulo");
+const Cliente_1 = require("../entities/Cliente");
+const Pedido_1 = require("../entities/Pedido");
+const Cxcobrar_1 = require("../entities/Cxcobrar");
+/**
+ * Script unificado de verificación del sistema
+ * Ejecuta comprobaciones de conexión, tablas y datos principales.
+ *
+ * Uso: npx ts-node src/scripts/check-system.ts
+ */
+const checkSystem = async () => {
+    try {
+        console.log('\n=============================================');
+        console.log('🚀 INICIANDO VERIFICACIÓN DEL SISTEMA');
+        console.log('=============================================\n');
+        // 1. Verificar Conexión a Base de Datos
+        console.log('📡 Verificando conexión a Base de Datos...');
+        await (0, database_1.initializeDatabase)();
+        console.log('✅ Conexión establecida correctamente.\n');
+        // 2. Verificar Tablas (Metadatos)
+        console.log('📋 Verificando Entidades/Tablas registradas en TypeORM...');
+        const entities = database_1.AppDataSource.entityMetadatas;
+        if (entities.length === 0) {
+            console.warn('⚠️ No se encontraron entidades registradas.');
+        }
+        else {
+            entities.forEach((entity) => {
+                console.log(`   - Entidad: ${entity.name} -> Tabla: ${entity.tableName}`);
+            });
+            console.log(`✅ Total entidades encontradas: ${entities.length}\n`);
+        }
+        // 3. Verificar Datos de Empresas
+        console.log('🏢 Verificando Empresas...');
+        const empresaRepo = database_1.AppDataSource.getRepository(Empresa_1.Empresa);
+        const empresasCount = await empresaRepo.count();
+        console.log(`   - Total Empresas: ${empresasCount}`);
+        if (empresasCount > 0) {
+            const empresas = await empresaRepo.find({ take: 3 });
+            empresas.forEach(e => console.log(`     * ID: ${e.id}, Nombre: ${e.nombre}, RIF: ${e.identificacion}`));
+        }
+        else {
+            console.warn('⚠️ No hay empresas registradas.');
+        }
+        console.log('');
+        // 4. Verificar Datos de Vendedores
+        console.log('👤 Verificando Vendedores...');
+        const vendedorRepo = database_1.AppDataSource.getRepository(Vendedor_1.Vendedor);
+        const vendedoresCount = await vendedorRepo.count();
+        console.log(`   - Total Vendedores: ${vendedoresCount}`);
+        if (vendedoresCount > 0) {
+            const vendedores = await vendedorRepo.find({ take: 3, relations: ['empresa'] });
+            vendedores.forEach(v => console.log(`     * Código: ${v.codigo}, Nombre: ${v.nombre}, Empresa: ${v.empresa?.nombre}`));
+        }
+        console.log('');
+        // 5. Verificar Datos de Artículos
+        console.log('📦 Verificando Artículos...');
+        const articuloRepo = database_1.AppDataSource.getRepository(Articulo_1.Articulo);
+        const articulosCount = await articuloRepo.count();
+        console.log(`   - Total Artículos: ${articulosCount}`);
+        if (articulosCount > 0) {
+            const articulos = await articuloRepo.find({ take: 3 });
+            articulos.forEach(a => console.log(`     * Código: ${a.codigo}, Desc: ${a.descripcion}, Precio: ${a.precio1}`));
+        }
+        console.log('');
+        // 6. Verificar Clientes
+        console.log('👥 Verificando Clientes...');
+        const clienteRepo = database_1.AppDataSource.getRepository(Cliente_1.Cliente);
+        const clientesCount = await clienteRepo.count();
+        console.log(`   - Total Clientes: ${clientesCount}\n`);
+        // 7. Verificar Pedidos
+        console.log('🛒 Verificando Pedidos...');
+        const pedidosRepo = database_1.AppDataSource.getRepository(Pedido_1.Pedido);
+        const pedidosCount = await pedidosRepo.count();
+        console.log(`   - Total Pedidos: ${pedidosCount}\n`);
+        // 8. Verificar CXC
+        console.log('💰 Verificando Cuentas por Cobrar (CXC)...');
+        const cxcRepo = database_1.AppDataSource.getRepository(Cxcobrar_1.Cxcobrar);
+        const cxcCount = await cxcRepo.count();
+        console.log(`   - Total CXC: ${cxcCount}\n`);
+        console.log('=============================================');
+        console.log('✅ VERIFICACIÓN COMPLETADA EXITOSAMENTE');
+        console.log('=============================================\n');
+    }
+    catch (error) {
+        console.error('\n❌ ERROR DURANTE LA VERIFICACIÓN:', error);
+        process.exit(1);
+    }
+    finally {
+        if (database_1.AppDataSource.isInitialized) {
+            await database_1.AppDataSource.destroy();
+        }
+    }
+};
+checkSystem();

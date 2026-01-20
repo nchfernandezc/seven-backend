@@ -14,6 +14,11 @@ const typeorm_1 = require("typeorm");
 const BaseModel_1 = require("./BaseModel");
 const Vendedor_1 = require("./Vendedor");
 const Articulo_1 = require("./Articulo");
+/**
+ * Entidad 'Empresa'
+ * Representa la compañía usuaria del sistema.
+ * Agrupa vendedores, clientes y artículos.
+ */
 let Empresa = class Empresa extends BaseModel_1.BaseModel {
 };
 exports.Empresa = Empresa;

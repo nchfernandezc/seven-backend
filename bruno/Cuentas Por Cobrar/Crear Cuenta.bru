@@ -1,0 +1,18 @@
+meta {
+  name: Crear Cuenta
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/cuentas-por-cobrar
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "clienteCodigo": "C-001",
+    "monto": 500
+  }
+}
