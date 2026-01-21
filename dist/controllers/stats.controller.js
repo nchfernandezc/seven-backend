@@ -20,15 +20,15 @@ const getDashboardStats = async (req, res) => {
             pedidoRepository
                 .createQueryBuilder('pedido')
                 .leftJoin('pedido.cliente', 'cliente')
-                .where('cliente.empresaId = :empresaId', { empresaId })
+                .where('cliente.id = :empresaId', { empresaId })
                 .getCount(),
             // Count clients for this company
             clienteRepository.count({
-                where: { empresaId }
+                where: { id: empresaId }
             }),
             // Count products for this company
             articuloRepository.count({
-                where: { empresaId }
+                where: { id: empresaId }
             })
         ]);
         res.json({

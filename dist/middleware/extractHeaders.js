@@ -8,11 +8,12 @@ exports.extractHeaders = void 0;
  */
 const extractHeaders = (req, res, next) => {
     try {
-        const companyId = req.headers['x-company-id'];
-        const salespersonId = req.headers['x-salesperson-id'];
+        // User requested exclusive use of _apk headers
+        const companyId = req.headers['id_apk'];
+        const salespersonId = req.headers['vendedor_apk'];
         console.log('=== MIDDLEWARE: Headers recibidos ===');
-        console.log('x-company-id:', companyId);
-        console.log('x-salesperson-id:', salespersonId);
+        console.log('id_apk:', companyId);
+        console.log('vendedor_apk:', salespersonId);
         if (companyId) {
             req.user = {
                 empresaId: Number(companyId),

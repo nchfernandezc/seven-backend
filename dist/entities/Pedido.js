@@ -26,14 +26,13 @@ __decorate([
 ], Pedido.prototype, "internalId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'num', type: 'varchar', length: 30, nullable: false }),
-    (0, typeorm_1.Index)({ unique: false }) // Might not be unique across companies if not composed
-    ,
+    (0, typeorm_1.Index)({ unique: false }),
     __metadata("design:type", String)
-], Pedido.prototype, "numero", void 0);
+], Pedido.prototype, "num", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'ven', type: 'varchar', length: 10, default: '' }),
     __metadata("design:type", String)
-], Pedido.prototype, "vendedorCodigo", void 0);
+], Pedido.prototype, "ven", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'fic', type: 'varchar', length: 20, default: '' }),
     __metadata("design:type", String)
@@ -41,15 +40,15 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ name: 'cod', type: 'varchar', length: 30, nullable: false }),
     __metadata("design:type", String)
-], Pedido.prototype, "articuloCodigo", void 0);
+], Pedido.prototype, "cod", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'des', type: 'varchar', length: 100, default: '' }),
     __metadata("design:type", String)
-], Pedido.prototype, "descripcion", void 0);
+], Pedido.prototype, "des", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'obs', type: 'text', nullable: true }),
     __metadata("design:type", String)
-], Pedido.prototype, "observaciones", void 0);
+], Pedido.prototype, "obs", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'ctra', type: 'varchar', length: 50, default: '' }),
     __metadata("design:type", String)
@@ -89,7 +88,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ name: 'cli', type: 'varchar', length: 20, nullable: false }),
     __metadata("design:type", String)
-], Pedido.prototype, "clienteCodigo", void 0);
+], Pedido.prototype, "cli", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'cusu', type: 'varchar', length: 30, default: '' }),
     __metadata("design:type", String)
@@ -105,7 +104,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ name: 'id', type: 'int', nullable: false }),
     __metadata("design:type", Number)
-], Pedido.prototype, "empresaId", void 0);
+], Pedido.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'ifac', type: 'int', default: 0 }),
     __metadata("design:type", Number)
@@ -209,16 +208,16 @@ __decorate([
 __decorate([
     (0, typeorm_1.ManyToOne)(() => Cliente_1.Cliente, { createForeignKeyConstraints: false }),
     (0, typeorm_1.JoinColumn)([
-        { name: 'id', referencedColumnName: 'empresaId' },
-        { name: 'cli', referencedColumnName: 'codigo' }
+        { name: 'id', referencedColumnName: 'id' },
+        { name: 'cli', referencedColumnName: 'ccod' }
     ]),
     __metadata("design:type", Cliente_1.Cliente)
 ], Pedido.prototype, "cliente", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => Articulo_1.Articulo, { createForeignKeyConstraints: false }),
     (0, typeorm_1.JoinColumn)([
-        { name: 'id', referencedColumnName: 'empresaId' },
-        { name: 'cod', referencedColumnName: 'codigo' }
+        { name: 'id', referencedColumnName: 'id' },
+        { name: 'cod', referencedColumnName: 'ccod' }
     ]),
     __metadata("design:type", Articulo_1.Articulo)
 ], Pedido.prototype, "articulo", void 0);

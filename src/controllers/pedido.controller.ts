@@ -12,28 +12,28 @@ const articuloRepository = AppDataSource.getRepository(Articulo);
 const cxcRepository = AppDataSource.getRepository(Cxcobrar);
 
 const mapRawToPedido = (raw: any) => ({
-  internalId: raw.pedido_xxx || raw.xxx,
+  id: raw.pedido_internalId || raw.pedido_xxx || raw.xxx, // Frontend expects unique ID here
   empresaId: raw.pedido_id || raw.id,
-  numero: raw.pedido_num || raw.num,
-  vendedorCodigo: raw.pedido_ven || raw.ven,
-  articuloCodigo: raw.pedido_cod || raw.cod,
-  descripcion: raw.pedido_des || raw.des,
-  clienteCodigo: raw.pedido_cli || raw.cli,
-  cantidad: raw.pedido_can || raw.can,
-  precio: raw.pedido_pre || raw.pre,
+  num: raw.pedido_num || raw.num,
+  ven: raw.pedido_ven || raw.ven,
+  cod: raw.pedido_cod || raw.cod,
+  des: raw.pedido_des || raw.des,
+  cli: raw.pedido_cli || raw.cli,
+  can: raw.pedido_can || raw.can,
+  pre: raw.pedido_pre || raw.pre,
   fecha: raw.pedido_dfec || raw.dfec,
-  estado: raw.pedido_ista || raw.ista || raw.pedido_itip || raw.itip,
-  // Map relationships
+  estado: raw.pedido_itip || raw.itip,
+  // Map relationships with safe access
   cliente: {
-    codigo: raw.cliente_codigo || raw.cliente_ccod || raw.cliente_cli,
-    nombre: raw.cliente_nombre || raw.cliente_cnom || raw.cliente_nom,
-    direccion: raw.cliente_direccion || raw.cliente_cdir || raw.cliente_dir,
-    telefono: raw.cliente_telefono || raw.cliente_ctel || raw.cliente_tel
+    ccod: raw.cliente_ccod || raw.cli_ccod || '',
+    cdet: raw.cliente_cdet || raw.cli_cdet || 'Cliente Desconocido',
+    cdir: raw.cliente_cdir || raw.cli_cdir || '',
+    ctel: raw.cliente_ctel || raw.cli_ctel || ''
   },
   articulo: {
-    codigo: raw.articulo_codigo || raw.articulo_ccod || raw.articulo_cod,
-    descripcion: raw.articulo_descripcion || raw.articulo_cdet || raw.articulo_des,
-    precio: raw.articulo_precio1 || raw.articulo_npre1 || raw.articulo_pre1
+    ccod: raw.articulo_ccod || raw.art_ccod || '',
+    cdet: raw.articulo_cdet || raw.art_cdet || 'Articulo Desconocido',
+    npre1: raw.articulo_npre1 || raw.art_npre1 || 0
   }
 });
 
@@ -53,17 +53,37 @@ export const getPedidos = async (req: Request, res: Response) => {
     const articuloTable = getTableName(empresaId, 'articulo');
 
     // Use raw query builder from DataSource
-    const queryBuilder = AppDataSource.createQueryBuilder()
-      .select('pedido.*')
-      .addSelect('cliente.*')
-      .addSelect('articulo.*')
-      .from(tableName, 'pedido')
-      .leftJoin(clienteTable, 'cliente', 'pedido.cli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
-      .leftJoin(articuloTable, 'articulo', 'pedido.cod = articulo.ccod AND articulo.id = :empresaId', { empresaId })
-      .where('pedido.id = :empresaId', { empresaId })
-      .orderBy('pedido.dfec', 'DESC');
+    // Use raw query with manual aliases to avoid collisions
+    // Assuming columns: pedido(num, ven, cod, des, can, pre, cli, id, dfec, itip, xxx)
+    const sql = `
+      SELECT 
+        pedido.xxx AS pedido_internalId,
+        pedido.id AS pedido_id,
+        pedido.num AS pedido_num,
+        pedido.ven AS pedido_ven,
+        pedido.cod AS pedido_cod,
+        pedido.des AS pedido_des,
+        pedido.can AS pedido_can,
+        pedido.pre AS pedido_pre,
+        pedido.cli AS pedido_cli,
+        pedido.dfec AS pedido_dfec,
+        pedido.itip AS pedido_itip,
+        cliente.ccod AS cliente_ccod,
+        cliente.cdet AS cliente_cdet,
+        cliente.cdir AS cliente_cdir,
+        cliente.ctel AS cliente_ctel,
+        articulo.ccod AS articulo_ccod,
+        articulo.cdet AS articulo_cdet,
+        articulo.npre1 AS articulo_npre1
+      FROM \`${tableName}\` pedido
+      LEFT JOIN \`${clienteTable}\` cliente ON pedido.cli = cliente.ccod AND cliente.id = ?
+      LEFT JOIN \`${articuloTable}\` articulo ON pedido.cod = articulo.ccod AND articulo.id = ?
+      WHERE pedido.id = ?
+      ORDER BY pedido.dfec DESC
+    `;
 
-    const rawPedidos = await queryBuilder.getRawMany();
+    const rawPedidos = await AppDataSource.query(sql, [empresaId, empresaId, empresaId]);
+    console.log('[getPedidos] Raw result:', rawPedidos);
 
     const pedidos = rawPedidos.map(mapRawToPedido);
 
@@ -91,11 +111,11 @@ export const getPedidoById = async (req: Request, res: Response) => {
 
     const rawPedido = await AppDataSource.createQueryBuilder()
       .select('pedido.*')
-      .addSelect(['cliente.codigo', 'cliente.nombre', 'cliente.direccion', 'cliente.telefono'])
-      .addSelect(['articulo.codigo', 'articulo.descripcion', 'articulo.npre1'])
+      .addSelect(['cliente.ccod', 'cliente.cdet', 'cliente.cdir', 'cliente.ctel'])
+      .addSelect(['articulo.ccod', 'articulo.cdet', 'articulo.npre1'])
       .from(tableName, 'pedido')
-      .leftJoin(getTableName(empresaId, 'cliente'), 'cliente', 'pedido.cli = cliente.codigo AND cliente.id = :empresaId', { empresaId })
-      .leftJoin(getTableName(empresaId, 'articulo'), 'articulo', 'pedido.cod = articulo.codigo AND articulo.id = :empresaId', { empresaId })
+      .leftJoin(getTableName(empresaId, 'cliente'), 'cliente', 'pedido.cli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
+      .leftJoin(getTableName(empresaId, 'articulo'), 'articulo', 'pedido.cod = articulo.ccod AND articulo.id = :empresaId', { empresaId })
       .where('pedido.xxx = :id', { id: Number(id) })
       .andWhere('pedido.id = :empresaId', { empresaId })
       .getRawOne();
@@ -135,10 +155,10 @@ export const createPedido = async (req: Request, res: Response) => {
 
     // Verificar cliente
     const cliente = await queryRunner.manager.createQueryBuilder()
-      .select('cliente')
+      .select('1')
       .from(clienteTable, 'cliente')
-      .where('cliente.codigo = :codigo', { codigo: req.body.clienteCodigo })
-      .andWhere('cliente.empresaId = :empresaId', { empresaId })
+      .where('cliente.ccod = :codigo', { codigo: req.body.cli })
+      .andWhere('cliente.id = :empresaId', { empresaId })
       .getRawOne();
 
     if (!cliente) {
@@ -148,10 +168,10 @@ export const createPedido = async (req: Request, res: Response) => {
 
     // Verificar artículo
     const articulo = await queryRunner.manager.createQueryBuilder()
-      .select('articulo')
+      .select('1')
       .from(articuloTable, 'articulo')
-      .where('articulo.codigo = :codigo', { codigo: req.body.articuloCodigo })
-      .andWhere('articulo.empresaId = :empresaId', { empresaId })
+      .where('articulo.ccod = :codigo', { codigo: req.body.cod })
+      .andWhere('articulo.id = :empresaId', { empresaId })
       .getRawOne();
 
     if (!articulo) {
@@ -160,7 +180,7 @@ export const createPedido = async (req: Request, res: Response) => {
     }
 
     // Calcular total
-    const total = req.body.cantidad * req.body.precioVenta;
+    const total = req.body.can * req.body.pre;
 
     // Crear pedido
     // Note: We use raw insert into dynamic table. 
@@ -180,62 +200,67 @@ export const createPedido = async (req: Request, res: Response) => {
       .insert()
       .into(pedidoTable)
       .values({
-        num: req.body.numero || `PED-${Date.now()}`, // Fallback if not provided
+        num: req.body.num || `PED-${Date.now()}`,
         ven: req.user?.vendedorId || 'VEN001',
-        cod: req.body.articuloCodigo,
-        des: req.body.articuloDescripcion || 'DESCRIPCION',
-        can: req.body.cantidad,
-        pre: req.body.precioVenta,
-        cli: req.body.clienteCodigo,
-        empresaId: empresaId, // 'id' column
-        fecha: new Date(),
-        estado: 1 // 'itip' or similar if existing? Assuming entity logic handles mapping if we used entity
-        // but here we are raw. Let's look at schema. 
-        // 001_pedido columns: num, ven, cod, des, can, pre, cli, id (empresa), ...
+        cod: req.body.cod,
+        des: req.body.des || 'DESCRIPCION',
+        can: req.body.can,
+        pre: req.body.pre,
+        cli: req.body.cli,
+        id: empresaId,
+        dfec: new Date(),
+        itip: 1
       })
       .execute();
 
-    const newPedidoId = insertPedido.identifiers[0].internalId || insertPedido.raw.insertId;
+    const newPedidoId = insertPedido.raw.insertId;
 
     // Crear cuenta por cobrar
     // Get last CXC num
-    const lastCxc = await queryRunner.manager.createQueryBuilder()
-      .select('cxc')
-      .from(cxcTable, 'cxc')
-      .where('cxc.empresaId = :empresaId', { empresaId })
-      .orderBy('cxc.inum', 'DESC') // 'inum' is the number column
-      .getRawOne();
+    const lastCxcResults = await queryRunner.query(
+      `SELECT inum FROM \`${cxcTable}\` WHERE id = ? ORDER BY inum DESC LIMIT 1`,
+      [empresaId]
+    );
+    const lastCxc = lastCxcResults[0];
 
     // cxc.inum is likely mapped to 'numero' property
-    const nextNumero = lastCxc ? (lastCxc.cxc_inum || lastCxc.inum) + 1 : 1;
+    const nextNumero = lastCxc ? (lastCxc.inum) + 1 : 1;
     // Note: raw result keys depend on driver. Usually just 'inum'. 
 
     await queryRunner.manager.createQueryBuilder()
       .insert()
       .into(cxcTable)
       .values({
-        tipoDocumento: 'PED', // 'cdoc'
-        numero: nextNumero, // 'inum'
-        monto: total, // 'nsal' ?
-        saldo: total,
-        clienteCodigo: req.body.clienteCodigo,
-        fecha: new Date(),
-        fechaVencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        estado: 0, // 0 = pendiente
-        observaciones: `Cuenta generada por pedido`,
-        empresaId: empresaId
+        cdoc: 'PED',
+        inum: nextNumero,
+        nsal: total,
+        ccli: req.body.cli,
+        dfec: new Date(),
+        // fechaVencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // No 'dven' in this raw insert? If so use 'dven' if entity has it. Cxcobrar.ts says 'dven' is not in User's removed list? Wait, user removed dven in their edit?
+        // User edit to Cxcobrar REMOVED 'dven'. But user requested earlier to add it? No, user requested "adjust entities headers".
+        // Let's check user's Cxcobrar edit. 'dven' was commented out or removed?
+        // "dven" was NOT in the list of kept columns. Only 'id', 'cdoc', 'inum', 'dfec', 'nsal', 'ccli', 'ista', 'cven'.
+        // So we do not insert dven.
+        ista: 0,
+        cven: req.user?.vendedorId || 'VEN001',
+        id: empresaId
       })
       .execute();
 
     await queryRunner.commitTransaction();
 
     // Obtener pedido con relaciones para respuesta
-    const pedidoCreado = await pedidoRepository.createQueryBuilder('pedido')
+    const queryBuilder = AppDataSource.createQueryBuilder()
+      .select('pedido.*')
+      .addSelect('cliente.*')
+      .addSelect('articulo.*')
       .from(pedidoTable, 'pedido')
-      .leftJoinAndMapOne('pedido.cliente', clienteTable, 'cliente', 'pedido.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
-      .leftJoinAndMapOne('pedido.articulo', articuloTable, 'articulo', 'pedido.articuloCodigo = articulo.codigo AND articulo.empresaId = :empresaId', { empresaId })
-      .where('pedido.internalId = :id', { id: Number(newPedidoId) })
-      .getOne();
+      .leftJoin(clienteTable, 'cliente', 'pedido.cli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
+      .leftJoin(articuloTable, 'articulo', 'pedido.cod = articulo.ccod AND articulo.id = :empresaId', { empresaId })
+      .where('pedido.xxx = :id', { id: Number(newPedidoId) });
+
+    const rawPedidoCreado = await queryBuilder.getRawOne();
+    const pedidoCreado = mapRawToPedido(rawPedidoCreado);
 
     res.status(201).json(pedidoCreado);
   } catch (error: unknown) {
@@ -262,40 +287,48 @@ export const updatePedido = async (req: Request, res: Response) => {
 
     const tableName = getTableName(empresaId, 'pedido');
 
-    const pedidoExistente = await pedidoRepository.createQueryBuilder('pedido')
+    const pedidoExistente = await AppDataSource.createQueryBuilder()
       .from(tableName, 'pedido')
-      .where('pedido.internalId = :id', { id: Number(id) })
-      .andWhere('pedido.empresaId = :empresaId', { empresaId })
-      .getOne();
+      .where('pedido.xxx = :id', { id: Number(id) })
+      .andWhere('pedido.id = :empresaId', { empresaId })
+      .getRawOne();
 
     if (!pedidoExistente) {
       return res.status(404).json({ message: 'Pedido no encontrado' });
     }
 
     // Checking foreign keys if updating
-    if (req.body.clienteCodigo) {
-      const exists = await clienteRepository.createQueryBuilder('c')
+    // Checking foreign keys if updating
+    if (req.body.cli) {
+      const exists = await AppDataSource.createQueryBuilder()
+        .select('1')
         .from(getTableName(empresaId, 'cliente'), 'c')
-        .where('c.codigo = :cod', { cod: req.body.clienteCodigo })
-        .andWhere('c.empresaId = :eid', { eid: empresaId })
-        .getOne();
+        .where('c.ccod = :cod', { cod: req.body.cli })
+        .andWhere('c.id = :eid', { eid: empresaId })
+        .getRawOne();
       if (!exists) return res.status(404).json({ message: 'Cliente no encontrado' });
     }
 
     // ... same for articulo if needed
 
-    await pedidoRepository.createQueryBuilder()
+    await AppDataSource.createQueryBuilder()
       .update(tableName)
       .set(req.body)
       .where('xxx = :id', { id: Number(id) })
+      .andWhere('id = :empresaId', { empresaId })
       .execute();
 
-    const pedidoActualizado = await pedidoRepository.createQueryBuilder('pedido')
+    const queryBuilder = AppDataSource.createQueryBuilder()
+      .select('pedido.*')
+      .addSelect('cliente.*')
+      .addSelect('articulo.*')
       .from(tableName, 'pedido')
-      .leftJoinAndMapOne('pedido.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'pedido.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
-      .leftJoinAndMapOne('pedido.articulo', getTableName(empresaId, 'articulo'), 'articulo', 'pedido.articuloCodigo = articulo.codigo AND articulo.empresaId = :empresaId', { empresaId })
-      .where('pedido.internalId = :id', { id: Number(id) })
-      .getOne();
+      .leftJoin(getTableName(empresaId, 'cliente'), 'cliente', 'pedido.cli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
+      .leftJoin(getTableName(empresaId, 'articulo'), 'articulo', 'pedido.cod = articulo.ccod AND articulo.id = :empresaId', { empresaId })
+      .where('pedido.xxx = :id', { id: Number(id) });
+
+    const rawPedidoActualizado = await queryBuilder.getRawOne();
+    const pedidoActualizado = mapRawToPedido(rawPedidoActualizado);
 
     res.json(pedidoActualizado);
   } catch (error: unknown) {
@@ -319,7 +352,7 @@ export const deletePedido = async (req: Request, res: Response) => {
 
     const tableName = getTableName(empresaId, 'pedido');
 
-    const resultado = await pedidoRepository.createQueryBuilder()
+    const resultado = await AppDataSource.createQueryBuilder()
       .delete()
       .from(tableName)
       .where('xxx = :id', { id: Number(id) })
@@ -352,14 +385,19 @@ export const getPedidosByCliente = async (req: Request, res: Response) => {
 
     const tableName = getTableName(empresaId, 'pedido');
 
-    const pedidos = await pedidoRepository.createQueryBuilder('pedido')
+    const queryBuilder = AppDataSource.createQueryBuilder()
+      .select('pedido.*')
+      .addSelect('cliente.*')
+      .addSelect('articulo.*')
       .from(tableName, 'pedido')
-      .leftJoinAndMapOne('pedido.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'pedido.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
-      .leftJoinAndMapOne('pedido.articulo', getTableName(empresaId, 'articulo'), 'articulo', 'pedido.articuloCodigo = articulo.codigo AND articulo.empresaId = :empresaId', { empresaId })
-      .where('pedido.clienteCodigo = :clienteId', { clienteId })
-      .andWhere('pedido.empresaId = :empresaId', { empresaId })
-      .orderBy('pedido.fecha', 'DESC')
-      .getMany();
+      .leftJoin(getTableName(empresaId, 'cliente'), 'cliente', 'pedido.cli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
+      .leftJoin(getTableName(empresaId, 'articulo'), 'articulo', 'pedido.cod = articulo.ccod AND articulo.id = :empresaId', { empresaId })
+      .where('pedido.cli = :clienteId', { clienteId })
+      .andWhere('pedido.id = :empresaId', { empresaId })
+      .orderBy('pedido.dfec', 'DESC');
+
+    const rawPedidos = await queryBuilder.getRawMany();
+    const pedidos = rawPedidos.map(mapRawToPedido);
 
     res.json(pedidos);
   } catch (error: unknown) {
@@ -383,14 +421,19 @@ export const getPedidosByArticulo = async (req: Request, res: Response) => {
 
     const tableName = getTableName(empresaId, 'pedido');
 
-    const pedidos = await pedidoRepository.createQueryBuilder('pedido')
+    const queryBuilder = AppDataSource.createQueryBuilder()
+      .select('pedido.*')
+      .addSelect('cliente.*')
+      .addSelect('articulo.*')
       .from(tableName, 'pedido')
-      .leftJoinAndMapOne('pedido.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'pedido.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
-      .leftJoinAndMapOne('pedido.articulo', getTableName(empresaId, 'articulo'), 'articulo', 'pedido.articuloCodigo = articulo.codigo AND articulo.empresaId = :empresaId', { empresaId })
-      .where('pedido.articuloCodigo = :articuloCodigo', { articuloCodigo })
-      .andWhere('pedido.empresaId = :empresaId', { empresaId })
-      .orderBy('pedido.fecha', 'DESC')
-      .getMany();
+      .leftJoin(getTableName(empresaId, 'cliente'), 'cliente', 'pedido.cli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
+      .leftJoin(getTableName(empresaId, 'articulo'), 'articulo', 'pedido.cod = articulo.ccod AND articulo.id = :empresaId', { empresaId })
+      .where('pedido.cod = :articuloCodigo', { articuloCodigo })
+      .andWhere('pedido.id = :empresaId', { empresaId })
+      .orderBy('pedido.dfec', 'DESC');
+
+    const rawPedidos = await queryBuilder.getRawMany();
+    const pedidos = rawPedidos.map(mapRawToPedido);
 
     res.json(pedidos);
   } catch (error: unknown) {

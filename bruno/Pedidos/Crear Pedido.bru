@@ -10,13 +10,17 @@ post {
   auth: none
 }
 
+headers {
+  id_apk: 1
+  vendedor_apk: VEN001
+}
+
 body:json {
   {
-    "numero": "PED-001",
-    "articuloCodigo": "TEST-001",
-    "cantidad": 10,
-    "precioVenta": 100,
-    "clienteCodigo": "C-001",
-    "usuario": "vendedor1"
+    "num": "PED-001",
+    "cod": "TEST-001",
+    "can": 10,
+    "pre": 100,
+    "cli": "C-001"
   }
 }

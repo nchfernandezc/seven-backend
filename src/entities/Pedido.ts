@@ -8,23 +8,23 @@ export class Pedido {
     internalId!: number;
 
     @Column({ name: 'num', type: 'varchar', length: 30, nullable: false })
-    @Index({ unique: false }) // Might not be unique across companies if not composed
-    numero!: string;
+    @Index({ unique: false })
+    num!: string;
 
     @Column({ name: 'ven', type: 'varchar', length: 10, default: '' })
-    vendedorCodigo!: string;
+    ven!: string;
 
     @Column({ name: 'fic', type: 'varchar', length: 20, default: '' })
     ficha!: string;
 
     @Column({ name: 'cod', type: 'varchar', length: 30, nullable: false })
-    articuloCodigo!: string;
+    cod!: string;
 
     @Column({ name: 'des', type: 'varchar', length: 100, default: '' })
-    descripcion!: string;
+    des!: string;
 
     @Column({ name: 'obs', type: 'text', nullable: true })
-    observaciones?: string;
+    obs?: string;
 
     @Column({ name: 'ctra', type: 'varchar', length: 50, default: '' })
     transporte!: string;
@@ -54,7 +54,7 @@ export class Pedido {
     ihor1!: number;
 
     @Column({ name: 'cli', type: 'varchar', length: 20, nullable: false })
-    clienteCodigo!: string;
+    cli!: string;
 
     @Column({ name: 'cusu', type: 'varchar', length: 30, default: '' })
     usuario!: string;
@@ -66,7 +66,7 @@ export class Pedido {
     precio!: number;
 
     @Column({ name: 'id', type: 'int', nullable: false })
-    empresaId!: number;
+    id!: number;
 
     @Column({ name: 'ifac', type: 'int', default: 0 })
     ifac!: number;
@@ -146,15 +146,15 @@ export class Pedido {
 
     @ManyToOne(() => Cliente, { createForeignKeyConstraints: false })
     @JoinColumn([
-        { name: 'id', referencedColumnName: 'empresaId' },
-        { name: 'cli', referencedColumnName: 'codigo' }
+        { name: 'id', referencedColumnName: 'id' },
+        { name: 'cli', referencedColumnName: 'ccod' }
     ])
     cliente!: Cliente;
 
     @ManyToOne(() => Articulo, { createForeignKeyConstraints: false })
     @JoinColumn([
-        { name: 'id', referencedColumnName: 'empresaId' },
-        { name: 'cod', referencedColumnName: 'codigo' }
+        { name: 'id', referencedColumnName: 'id' },
+        { name: 'cod', referencedColumnName: 'ccod' }
     ])
     articulo!: Articulo;
 }

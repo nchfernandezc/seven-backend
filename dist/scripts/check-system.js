@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const database_1 = require("../config/database");
 const Empresa_1 = require("../entities/Empresa");
-const Vendedor_1 = require("../entities/Vendedor");
+const Usuario_1 = require("../entities/Usuario");
 const Articulo_1 = require("../entities/Articulo");
 const Cliente_1 = require("../entities/Cliente");
 const Pedido_1 = require("../entities/Pedido");
@@ -47,14 +47,14 @@ const checkSystem = async () => {
             console.warn('⚠️ No hay empresas registradas.');
         }
         console.log('');
-        // 4. Verificar Datos de Vendedores
-        console.log('👤 Verificando Vendedores...');
-        const vendedorRepo = database_1.AppDataSource.getRepository(Vendedor_1.Vendedor);
-        const vendedoresCount = await vendedorRepo.count();
-        console.log(`   - Total Vendedores: ${vendedoresCount}`);
-        if (vendedoresCount > 0) {
-            const vendedores = await vendedorRepo.find({ take: 3, relations: ['empresa'] });
-            vendedores.forEach(v => console.log(`     * Código: ${v.codigo}, Nombre: ${v.nombre}, Empresa: ${v.empresa?.nombre}`));
+        // 4. Verificar Datos de Usuarios (Vendedores)
+        console.log('👤 Verificando Usuarios (a_usuario)...');
+        const usuarioRepo = database_1.AppDataSource.getRepository(Usuario_1.Usuario);
+        const usuariosCount = await usuarioRepo.count();
+        console.log(`   - Total Usuarios: ${usuariosCount}`);
+        if (usuariosCount > 0) {
+            const usuarios = await usuarioRepo.find({ take: 3 });
+            usuarios.forEach(u => console.log(`     * Código: ${u.vendedor}, Nombre: ${u.usuario}, Empresa ID: ${u.id}`));
         }
         console.log('');
         // 5. Verificar Datos de Artículos
@@ -64,7 +64,7 @@ const checkSystem = async () => {
         console.log(`   - Total Artículos: ${articulosCount}`);
         if (articulosCount > 0) {
             const articulos = await articuloRepo.find({ take: 3 });
-            articulos.forEach(a => console.log(`     * Código: ${a.codigo}, Desc: ${a.descripcion}, Precio: ${a.precio1}`));
+            articulos.forEach(a => console.log(`     * Código: ${a.ccod}, Desc: ${a.cdet}, Precio: ${a.npre1}`));
         }
         console.log('');
         // 6. Verificar Clientes

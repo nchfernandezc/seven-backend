@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Empresa = void 0;
 const typeorm_1 = require("typeorm");
 const BaseModel_1 = require("./BaseModel");
-const Vendedor_1 = require("./Vendedor");
 const Articulo_1 = require("./Articulo");
 /**
  * Entidad 'Empresa'
@@ -38,10 +37,6 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 50, nullable: true }),
     __metadata("design:type", String)
 ], Empresa.prototype, "telefono", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => Vendedor_1.Vendedor, (vendedor) => vendedor.empresa),
-    __metadata("design:type", Array)
-], Empresa.prototype, "vendedores", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => Articulo_1.Articulo, (articulo) => articulo.empresa),
     __metadata("design:type", Array)

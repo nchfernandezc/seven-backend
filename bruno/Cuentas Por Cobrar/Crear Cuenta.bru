@@ -10,9 +10,17 @@ post {
   auth: none
 }
 
+headers {
+  id_apk: 1
+  vendedor_apk: VEN001
+}
+
 body:json {
   {
-    "clienteCodigo": "C-001",
-    "monto": 500
+    "ccli": "C-001",
+    "monto": 500,
+    "cdoc": "FAC",
+    "inum": 1001,
+    "cven": "VEN001"
   }
 }

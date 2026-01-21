@@ -19,14 +19,16 @@ declare global {
 
 const mapRawToArticulo = (raw: any) => ({
   internalId: raw.xxx,
-  empresaId: raw.id,
-  codigo: raw.ccod,
-  descripcion: raw.cdet,
-  precio1: raw.npre1,
-  precio2: raw.npre2,
-  precio3: raw.npre3,
-  cantidad: raw.ncan1,
-  referencia: raw.cref,
+  id: raw.id,
+  ccod: raw.ccod,
+  cdet: raw.cdet,
+  cuni: raw.cuni,
+  cref: raw.cref,
+  npre1: raw.npre1,
+  npre2: raw.npre2,
+  npre3: raw.npre3,
+  ncan1: raw.ncan1,
+  ides: raw.ides,
   marca: raw.cmar
 });
 
@@ -107,10 +109,11 @@ export const createArticulo = async (req: Request, res: Response) => {
     const tableName = getTableName(empresaId, 'articulo');
 
     // Verificar código único por empresa
+    // Verificar código único por empresa
     const existingArticulo = await articuloRepository.createQueryBuilder('articulo')
       .from(tableName, 'articulo')
-      .where('articulo.codigo = :codigo', { codigo: req.body.codigo })
-      .andWhere('articulo.empresaId = :empresaId', { empresaId })
+      .where('articulo.ccod = :codigo', { codigo: req.body.ccod })
+      .andWhere('articulo.id = :empresaId', { empresaId })
       .getOne();
 
     if (existingArticulo) {
@@ -126,7 +129,7 @@ export const createArticulo = async (req: Request, res: Response) => {
       .into(tableName)
       .values({
         ...req.body,
-        empresaId: empresaId
+        id: empresaId
       })
       .execute();
 
@@ -163,7 +166,7 @@ export const updateArticulo = async (req: Request, res: Response) => {
     const articulo = await articuloRepository.createQueryBuilder('articulo')
       .from(tableName, 'articulo')
       .where('articulo.internalId = :id', { id: Number(id) })
-      .andWhere('articulo.empresaId = :empresaId', { empresaId })
+      .andWhere('articulo.id = :empresaId', { empresaId })
       .getOne();
 
     if (!articulo) {
@@ -171,11 +174,11 @@ export const updateArticulo = async (req: Request, res: Response) => {
     }
 
     // Verificar código único si se está actualizando
-    if (req.body.codigo && req.body.codigo !== articulo.codigo) {
+    if (req.body.ccod && req.body.ccod !== articulo.ccod) {
       const existingArticulo = await articuloRepository.createQueryBuilder('articulo')
         .from(tableName, 'articulo')
-        .where('articulo.codigo = :codigo', { codigo: req.body.codigo })
-        .andWhere('articulo.empresaId = :empresaId', { empresaId })
+        .where('articulo.ccod = :codigo', { codigo: req.body.ccod })
+        .andWhere('articulo.id = :empresaId', { empresaId })
         .getOne();
 
       if (existingArticulo) {

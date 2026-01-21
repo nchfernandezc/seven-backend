@@ -26,243 +26,39 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ name: 'id', type: 'int', nullable: false }),
     __metadata("design:type", Number)
-], Articulo.prototype, "empresaId", void 0);
+], Articulo.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'ccod', type: 'varchar', length: 50, nullable: false }),
     __metadata("design:type", String)
-], Articulo.prototype, "codigo", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ccodx', type: 'varchar', length: 50, nullable: false, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "codigoAlterno", void 0);
+], Articulo.prototype, "ccod", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'cdet', type: 'varchar', length: 200, nullable: false }),
     __metadata("design:type", String)
-], Articulo.prototype, "descripcion", void 0);
+], Articulo.prototype, "cdet", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'cuni', type: 'varchar', length: 20, default: '' }),
     __metadata("design:type", String)
-], Articulo.prototype, "unidad", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cmod', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "modelo", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cusu', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "usuario", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cmaq', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "maquina", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'npre1', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "precio1", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'npre2', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "precio2", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'npre3', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "precio3", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'npre4', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "precio4", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'npre5', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "precio5", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'npre6', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "precio6", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'npor1', type: 'decimal', precision: 10, scale: 2, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "porcentaje1", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'npor2', type: 'decimal', precision: 10, scale: 2, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "porcentaje2", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncos', type: 'decimal', precision: 18, scale: 2, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "costo", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan1', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "cantidad", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan2', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "cantidad2", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan3', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "cantidad3", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'itip', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "tipo", void 0);
+], Articulo.prototype, "cuni", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'cref', type: 'varchar', length: 50, default: '' }),
     __metadata("design:type", String)
-], Articulo.prototype, "referencia", void 0);
+], Articulo.prototype, "cref", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'iiva', type: 'int', default: 0 }),
+    (0, typeorm_1.Column)({ name: 'npre1', type: 'decimal', precision: 18, scale: 3, default: 0 }),
     __metadata("design:type", Number)
-], Articulo.prototype, "impuesto", void 0);
+], Articulo.prototype, "npre1", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'cdep', type: 'varchar', length: 20, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "departamento", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ccla', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "clase", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ccol', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "color", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cmar', type: 'varchar', length: 50, nullable: true }),
-    __metadata("design:type", String)
-], Articulo.prototype, "marca", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan4', type: 'decimal', precision: 18, scale: 3, default: 0 }),
+    (0, typeorm_1.Column)({ name: 'npre2', type: 'decimal', precision: 18, scale: 3, default: 0 }),
     __metadata("design:type", Number)
-], Articulo.prototype, "cantidad4", void 0);
+], Articulo.prototype, "npre2", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'npes', type: 'decimal', precision: 18, scale: 4, default: 0 }),
+    (0, typeorm_1.Column)({ name: 'ncan1', type: 'decimal', precision: 18, scale: 3, default: 0 }),
     __metadata("design:type", Number)
-], Articulo.prototype, "peso", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ndolar', type: 'decimal', precision: 18, scale: 2, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "dolar", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ivid', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ivid", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'imix', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "imix", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cpre', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "cpre", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cubi', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "cubi", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cest', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "cest", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cniv', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "cniv", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cpos', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "cpos", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cfor1', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "cfor1", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cfor2', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "cfor2", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cfor3', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "cfor3", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'cfor4', type: 'varchar', length: 50, default: '' }),
-    __metadata("design:type", String)
-], Articulo.prototype, "cfor4", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'iroj', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "iroj", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'icon', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "icon", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'nroj', type: 'decimal', precision: 18, scale: 2, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "nroj", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan5', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ncan5", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan7', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ncan7", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan8', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ncan8", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan9', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ncan9", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan10', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ncan10", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan11', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ncan11", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan12', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ncan12", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ivac', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ivac", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ipal', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ipal", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ifis', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ifis", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ific', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ific", void 0);
+], Articulo.prototype, "ncan1", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'ides', type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], Articulo.prototype, "ides", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ncan6', type: 'decimal', precision: 18, scale: 3, default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ncan6", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ihas', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ihas", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'ista', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "ista", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'isube', type: 'int', default: 0 }),
-    __metadata("design:type", Number)
-], Articulo.prototype, "isube", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'is_deleted', default: false }),
     __metadata("design:type", Boolean)
@@ -288,5 +84,5 @@ __decorate([
 ], Articulo.prototype, "empresa", void 0);
 exports.Articulo = Articulo = __decorate([
     (0, typeorm_1.Entity)('articulos'),
-    (0, typeorm_1.Index)(['empresaId', 'codigo'], { unique: true })
+    (0, typeorm_1.Index)(['id', 'ccod'], { unique: true })
 ], Articulo);

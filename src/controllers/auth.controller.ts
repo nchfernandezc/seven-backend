@@ -1,46 +1,46 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
-import { Vendedor } from '../entities/Vendedor';
+import { Usuario } from '../entities/Usuario';
 
-const vendedorRepository = AppDataSource.getRepository(Vendedor);
+const usuarioRepository = AppDataSource.getRepository(Usuario);
 
 /**
- * Valida las credenciales de un vendedor
+ * Valida las credenciales de un vendedor/usuario (Configuración inicial)
+ * Se consulta la tabla 'a_usuario'
  */
 export const validarVendedor = async (req: Request, res: Response) => {
     try {
         const { empresaId, numeroVendedor } = req.params;
 
-        const vendedor = await vendedorRepository.findOne({
+        // User Refactor: "Where vendedor = vendedor_apk and id=id_apk"
+        // empresaId maps to id_apk (Usuario.id)
+        // numeroVendedor maps to vendedor_apk (Usuario.vendedor)
+        const usuario = await usuarioRepository.findOne({
             where: {
-                codigo: numeroVendedor,
-                empresa: { id: parseInt(empresaId) }
-            },
-            relations: ['empresa']
+                id: Number(empresaId),
+                vendedor: numeroVendedor
+            }
         });
 
-        if (!vendedor) {
+        if (!usuario) {
             return res.status(404).json({
                 success: false,
-                message: 'Vendedor no encontrado'
+                message: 'Usuario/Vendedor no encontrado en a_usuario'
             });
         }
 
         res.json({
             success: true,
             data: {
-                id: vendedor.id,
-                codigo: vendedor.codigo,
-                nombre: vendedor.nombre,
-                telefono: vendedor.telefono,
-                empresa: {
-                    id: vendedor.empresa.id,
-                    nombre: vendedor.empresa.nombre
-                }
+                id: usuario.id, // id_apk
+                vendedor: usuario.vendedor, // vendedor_apk
+                usuario: usuario.usuario,
+                detalle: usuario.detalle,
+                // Do not return password (contraseña) unless explicitly needed
             }
         });
     } catch (error) {
-        console.error('Error al validar vendedor:', error);
+        console.error('Error al validar vendedor (a_usuario):', error);
         res.status(500).json({
             success: false,
             message: 'Error al validar el vendedor'

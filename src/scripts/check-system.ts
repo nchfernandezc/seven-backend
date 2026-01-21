@@ -1,6 +1,6 @@
 import { AppDataSource, initializeDatabase } from '../config/database';
 import { Empresa } from '../entities/Empresa';
-import { Vendedor } from '../entities/Vendedor';
+import { Usuario } from '../entities/Usuario';
 import { Articulo } from '../entities/Articulo';
 import { Cliente } from '../entities/Cliente';
 import { Pedido } from '../entities/Pedido';
@@ -49,14 +49,14 @@ const checkSystem = async () => {
         }
         console.log('');
 
-        // 4. Verificar Datos de Vendedores
-        console.log('👤 Verificando Vendedores...');
-        const vendedorRepo = AppDataSource.getRepository(Vendedor);
-        const vendedoresCount = await vendedorRepo.count();
-        console.log(`   - Total Vendedores: ${vendedoresCount}`);
-        if (vendedoresCount > 0) {
-            const vendedores = await vendedorRepo.find({ take: 3, relations: ['empresa'] });
-            vendedores.forEach(v => console.log(`     * Código: ${v.codigo}, Nombre: ${v.nombre}, Empresa: ${v.empresa?.nombre}`));
+        // 4. Verificar Datos de Usuarios (Vendedores)
+        console.log('👤 Verificando Usuarios (a_usuario)...');
+        const usuarioRepo = AppDataSource.getRepository(Usuario);
+        const usuariosCount = await usuarioRepo.count();
+        console.log(`   - Total Usuarios: ${usuariosCount}`);
+        if (usuariosCount > 0) {
+            const usuarios = await usuarioRepo.find({ take: 3 });
+            usuarios.forEach(u => console.log(`     * Código: ${u.vendedor}, Nombre: ${u.usuario}, Empresa ID: ${u.id}`));
         }
         console.log('');
 
@@ -67,7 +67,7 @@ const checkSystem = async () => {
         console.log(`   - Total Artículos: ${articulosCount}`);
         if (articulosCount > 0) {
             const articulos = await articuloRepo.find({ take: 3 });
-            articulos.forEach(a => console.log(`     * Código: ${a.codigo}, Desc: ${a.descripcion}, Precio: ${a.precio1}`));
+            articulos.forEach(a => console.log(`     * Código: ${a.ccod}, Desc: ${a.cdet}, Precio: ${a.npre1}`));
         }
         console.log('');
 

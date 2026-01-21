@@ -8,7 +8,7 @@ const Cliente_1 = require("../entities/Cliente");
 const Cxcobrar_1 = require("../entities/Cxcobrar");
 const Empresa_1 = require("../entities/Empresa");
 const Pedido_1 = require("../entities/Pedido");
-const Vendedor_1 = require("../entities/Vendedor");
+const Usuario_1 = require("../entities/Usuario");
 const router = (0, express_1.Router)();
 // Register all entities that need synchronization
 sync_controller_1.SyncController.registerEntities({
@@ -17,7 +17,7 @@ sync_controller_1.SyncController.registerEntities({
     cxcobrar: Cxcobrar_1.Cxcobrar,
     empresa: Empresa_1.Empresa,
     pedido: Pedido_1.Pedido,
-    vendedor: Vendedor_1.Vendedor,
+    vendedor: Usuario_1.Usuario,
 });
 /**
  * @swagger

@@ -7,14 +7,16 @@ const tableName_1 = require("../utils/tableName");
 const articuloRepository = database_1.AppDataSource.getRepository(Articulo_1.Articulo);
 const mapRawToArticulo = (raw) => ({
     internalId: raw.xxx,
-    empresaId: raw.id,
-    codigo: raw.ccod,
-    descripcion: raw.cdet,
-    precio1: raw.npre1,
-    precio2: raw.npre2,
-    precio3: raw.npre3,
-    cantidad: raw.ncan1,
-    referencia: raw.cref,
+    id: raw.id,
+    ccod: raw.ccod,
+    cdet: raw.cdet,
+    cuni: raw.cuni,
+    cref: raw.cref,
+    npre1: raw.npre1,
+    npre2: raw.npre2,
+    npre3: raw.npre3,
+    ncan1: raw.ncan1,
+    ides: raw.ides,
     marca: raw.cmar
 });
 /**
@@ -84,10 +86,11 @@ const createArticulo = async (req, res) => {
         }
         const tableName = (0, tableName_1.getTableName)(empresaId, 'articulo');
         // Verificar código único por empresa
+        // Verificar código único por empresa
         const existingArticulo = await articuloRepository.createQueryBuilder('articulo')
             .from(tableName, 'articulo')
-            .where('articulo.codigo = :codigo', { codigo: req.body.codigo })
-            .andWhere('articulo.empresaId = :empresaId', { empresaId })
+            .where('articulo.ccod = :codigo', { codigo: req.body.ccod })
+            .andWhere('articulo.id = :empresaId', { empresaId })
             .getOne();
         if (existingArticulo) {
             return res.status(400).json({
@@ -101,7 +104,7 @@ const createArticulo = async (req, res) => {
             .into(tableName)
             .values({
             ...req.body,
-            empresaId: empresaId
+            id: empresaId
         })
             .execute();
         // Fetch the created item to return standard response
@@ -133,17 +136,17 @@ const updateArticulo = async (req, res) => {
         const articulo = await articuloRepository.createQueryBuilder('articulo')
             .from(tableName, 'articulo')
             .where('articulo.internalId = :id', { id: Number(id) })
-            .andWhere('articulo.empresaId = :empresaId', { empresaId })
+            .andWhere('articulo.id = :empresaId', { empresaId })
             .getOne();
         if (!articulo) {
             return res.status(404).json({ message: 'Artículo no encontrado' });
         }
         // Verificar código único si se está actualizando
-        if (req.body.codigo && req.body.codigo !== articulo.codigo) {
+        if (req.body.ccod && req.body.ccod !== articulo.ccod) {
             const existingArticulo = await articuloRepository.createQueryBuilder('articulo')
                 .from(tableName, 'articulo')
-                .where('articulo.codigo = :codigo', { codigo: req.body.codigo })
-                .andWhere('articulo.empresaId = :empresaId', { empresaId })
+                .where('articulo.ccod = :codigo', { codigo: req.body.ccod })
+                .andWhere('articulo.id = :empresaId', { empresaId })
                 .getOne();
             if (existingArticulo) {
                 return res.status(400).json({

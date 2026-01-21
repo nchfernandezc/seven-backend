@@ -7,7 +7,7 @@ import { Cliente } from '../entities/Cliente';
 import { Cxcobrar } from '../entities/Cxcobrar';
 import { Empresa } from '../entities/Empresa';
 import { Pedido } from '../entities/Pedido';
-import { Vendedor } from '../entities/Vendedor';
+import { Usuario } from '../entities/Usuario';
 
 const router = Router();
 
@@ -18,7 +18,7 @@ SyncController.registerEntities({
     cxcobrar: Cxcobrar as any,
     empresa: Empresa as any,
     pedido: Pedido as any,
-    vendedor: Vendedor as any,
+    vendedor: Usuario as any,
 });
 
 /**

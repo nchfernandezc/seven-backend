@@ -2,19 +2,30 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateVendedor = exports.getVendedorByNumero = exports.deleteVendedor = exports.updateVendedor = exports.createVendedor = exports.getVendedorById = exports.getVendedores = void 0;
 const database_1 = require("../config/database");
-const Vendedor_1 = require("../entities/Vendedor");
+const Usuario_1 = require("../entities/Usuario");
 const Empresa_1 = require("../entities/Empresa");
-const vendedorRepository = database_1.AppDataSource.getRepository(Vendedor_1.Vendedor);
+const usuarioRepository = database_1.AppDataSource.getRepository(Usuario_1.Usuario);
 const empresaRepository = database_1.AppDataSource.getRepository(Empresa_1.Empresa);
 /**
- * Obtiene todos los vendedores
+ * Obtiene todos los vendedores (Usuarios)
  */
 const getVendedores = async (req, res) => {
     try {
-        const vendedores = await vendedorRepository.find({
-            relations: ['empresa']
+        const { empresaId } = req.query;
+        // Filter by empresaId (Usuario.id) if provided
+        const whereCondition = empresaId ? { id: Number(empresaId) } : {};
+        const vendedores = await usuarioRepository.find({
+            where: whereCondition
         });
-        res.json(vendedores);
+        // Map to expected format
+        const response = vendedores.map(u => ({
+            id: u.internalId, // Use internal ID or primary key if needed
+            codigo: u.vendedor,
+            nombre: u.usuario, // Or u.detalle
+            telefono: '', // Not in a_usuario
+            empresaId: u.id
+        }));
+        res.json(response);
     }
     catch (error) {
         console.error('Error al obtener vendedores:', error);
@@ -23,18 +34,22 @@ const getVendedores = async (req, res) => {
 };
 exports.getVendedores = getVendedores;
 /**
- * Obtiene un vendedor por ID
+ * Obtiene un vendedor por ID (internalId)
  */
 const getVendedorById = async (req, res) => {
     try {
-        const vendedor = await vendedorRepository.findOne({
-            where: { id: parseInt(req.params.id) },
-            relations: ['empresa']
+        const vendedor = await usuarioRepository.findOne({
+            where: { internalId: parseInt(req.params.id) }
         });
         if (!vendedor) {
             return res.status(404).json({ message: 'Vendedor no encontrado' });
         }
-        res.json(vendedor);
+        res.json({
+            id: vendedor.internalId,
+            codigo: vendedor.vendedor,
+            nombre: vendedor.usuario,
+            empresaId: vendedor.id
+        });
     }
     catch (error) {
         console.error('Error al obtener vendedor:', error);
@@ -43,20 +58,25 @@ const getVendedorById = async (req, res) => {
 };
 exports.getVendedorById = getVendedorById;
 /**
- * Crea un nuevo vendedor
+ * Crea un nuevo vendedor (Usuario)
  */
 const createVendedor = async (req, res) => {
     try {
-        const { empresaId, ...vendedorData } = req.body;
+        // This might be separate from normal Vendedor creation. 
+        // Assuming we create an entry in a_usuario.
+        const { empresaId, codigo, nombre, password } = req.body;
         const empresa = await empresaRepository.findOneBy({ id: empresaId });
         if (!empresa) {
             return res.status(404).json({ message: 'Empresa no encontrada' });
         }
-        const vendedor = vendedorRepository.create({
-            ...vendedorData,
-            empresa
+        const nuevoUsuario = usuarioRepository.create({
+            id: empresaId,
+            vendedor: codigo,
+            usuario: nombre,
+            detalle: nombre, // Default detail to name
+            contra: password || '123456' // Default password if not provided
         });
-        const result = await vendedorRepository.save(vendedor);
+        const result = await usuarioRepository.save(nuevoUsuario);
         res.status(201).json(result);
     }
     catch (error) {
@@ -70,14 +90,18 @@ exports.createVendedor = createVendedor;
  */
 const updateVendedor = async (req, res) => {
     try {
-        const vendedor = await vendedorRepository.findOne({
-            where: { id: parseInt(req.params.id) }
+        const vendedor = await usuarioRepository.findOne({
+            where: { internalId: parseInt(req.params.id) }
         });
         if (!vendedor) {
             return res.status(404).json({ message: 'Vendedor no encontrado' });
         }
-        vendedorRepository.merge(vendedor, req.body);
-        const result = await vendedorRepository.save(vendedor);
+        // Map incoming fields to Usuario fields
+        if (req.body.nombre)
+            vendedor.usuario = req.body.nombre;
+        if (req.body.codigo)
+            vendedor.vendedor = req.body.codigo;
+        const result = await usuarioRepository.save(vendedor);
         res.json(result);
     }
     catch (error) {
@@ -91,7 +115,7 @@ exports.updateVendedor = updateVendedor;
  */
 const deleteVendedor = async (req, res) => {
     try {
-        const result = await vendedorRepository.delete(parseInt(req.params.id));
+        const result = await usuarioRepository.delete(parseInt(req.params.id));
         if (result.affected === 0) {
             return res.status(404).json({ message: 'Vendedor no encontrado' });
         }
@@ -109,12 +133,11 @@ exports.deleteVendedor = deleteVendedor;
 const getVendedorByNumero = async (req, res) => {
     try {
         const { numeroVendedor, empresaId } = req.params;
-        const vendedor = await vendedorRepository.findOne({
+        const vendedor = await usuarioRepository.findOne({
             where: {
-                codigo: numeroVendedor,
-                empresaId: parseInt(empresaId)
-            },
-            relations: ['empresa']
+                vendedor: numeroVendedor,
+                id: parseInt(empresaId)
+            }
         });
         if (!vendedor) {
             return res.status(404).json({
@@ -125,13 +148,14 @@ const getVendedorByNumero = async (req, res) => {
         res.json({
             success: true,
             data: {
-                id: vendedor.id,
-                codigo: vendedor.codigo,
-                nombre: vendedor.nombre,
-                telefono: vendedor.telefono,
+                id: vendedor.id, // empresaId/id_apk
+                internalId: vendedor.internalId,
+                codigo: vendedor.vendedor,
+                nombre: vendedor.usuario,
+                telefono: '',
                 empresa: {
-                    id: vendedor.empresa.id,
-                    nombre: vendedor.empresa.nombre
+                    id: vendedor.id,
+                    nombre: 'Empresa ' + vendedor.id // Placeholder if no join
                 }
             }
         });
@@ -157,12 +181,12 @@ const validateVendedor = async (req, res) => {
                 message: 'Se requiere el código del vendedor y el ID de la empresa'
             });
         }
-        const vendedor = await vendedorRepository.findOne({
+        // Search in a_usuarios using Usuario entity
+        const vendedor = await usuarioRepository.findOne({
             where: {
-                codigo: codigo.toString().trim(),
-                empresaId: parseInt(empresaId)
-            },
-            relations: ['empresa']
+                vendedor: codigo.toString().trim(),
+                id: parseInt(empresaId)
+            }
         });
         if (!vendedor) {
             return res.status(404).json({
@@ -175,13 +199,13 @@ const validateVendedor = async (req, res) => {
             message: 'Vendedor validado correctamente',
             data: {
                 id: vendedor.id,
-                codigo: vendedor.codigo,
-                nombre: vendedor.nombre,
-                telefono: vendedor.telefono || null,
+                codigo: vendedor.vendedor,
+                nombre: vendedor.usuario,
+                telefono: null,
                 empresa: {
-                    id: vendedor.empresa.id,
-                    nombre: vendedor.empresa.nombre,
-                    identificacion: vendedor.empresa.identificacion
+                    id: vendedor.id,
+                    nombre: 'Empresa ' + vendedor.id, // We could fetch proper name if needed
+                    identificacion: ''
                 }
             }
         });

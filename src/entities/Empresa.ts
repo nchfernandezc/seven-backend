@@ -1,6 +1,5 @@
 import { Entity, Column, OneToMany } from 'typeorm';
 import { BaseModel } from './BaseModel';
-import { Vendedor } from './Vendedor';
 import { Articulo } from './Articulo';
 
 /**
@@ -21,9 +20,6 @@ export class Empresa extends BaseModel {
 
     @Column({ type: 'varchar', length: 50, nullable: true })
     telefono?: string;
-
-    @OneToMany(() => Vendedor, (vendedor) => vendedor.empresa)
-    vendedores!: Vendedor[];
 
     @OneToMany(() => Articulo, (articulo) => articulo.empresa)
     articulos!: Articulo[];

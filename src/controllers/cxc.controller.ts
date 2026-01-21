@@ -18,26 +18,26 @@ interface CxcFilter {
 
 const mapRawToCxc = (raw: any) => ({
   internalId: raw.cxc_xxx || raw.xxx,
-  empresaId: raw.cxc_id || raw.id,
-  tipoDocumento: raw.cxc_cdoc || raw.cdoc,
-  clienteCodigo: raw.cxc_ccli || raw.ccli,
-  numero: raw.cxc_inum || raw.inum,
+  id: raw.cxc_id || raw.id,
+  cdoc: raw.cxc_cdoc || raw.cdoc,
+  ccli: raw.cxc_ccli || raw.ccli,
+  inum: raw.cxc_inum || raw.inum,
   monto: Number(raw.cxc_impo || raw.impo || (Number(raw.cxc_nnet || raw.nnet || 0) + Number(raw.cxc_niva || raw.niva || 0))),
   nnet: raw.cxc_nnet || raw.nnet,
   niva: raw.cxc_niva || raw.niva,
-  fecha: raw.cxc_dfec || raw.dfec,
-  saldo: raw.cxc_nsal || raw.nsal,
+  dfec: raw.cxc_dfec || raw.dfec,
+  nsal: raw.cxc_nsal || raw.nsal,
   dias: raw.cxc_idia || raw.idia,
-  estado: (raw.cxc_ista === 1 || raw.ista === 1) ? 'pagado' : 'pendiente',
+  estatus: (raw.cxc_ista === 1 || raw.ista === 1) ? 'pagado' : 'pendiente',
   // Map joined client data if available
-  // Check for both 'codigo' (modern) and 'ccod' (legacy) aliases
+  // Check for 'ccod' (legacy) aliases
   cliente: (raw.cliente_codigo || raw.cliente_ccod) ? {
     internalId: raw.cliente_xxx,
-    codigo: raw.cliente_codigo || raw.cliente_ccod,
-    nombre: raw.cliente_nombre || raw.cliente_cnom || raw.cliente_nom,
-    direccion: raw.cliente_direccion || raw.cliente_cdir || raw.cliente_dir,
-    telefono: raw.cliente_telefono || raw.cliente_ctel || raw.cliente_tel,
-    vendedorCodigo: raw.cliente_vendedorCodigo || raw.cliente_cven
+    ccod: raw.cliente_codigo || raw.cliente_ccod,
+    cdet: raw.cliente_nombre || raw.cliente_cnom || raw.cliente_nom || raw.cliente_cdet,
+    cdir: raw.cliente_direccion || raw.cliente_cdir || raw.cliente_dir,
+    ctel: raw.cliente_telefono || raw.cliente_ctel || raw.cliente_tel,
+    cven: raw.cliente_vendedorCodigo || raw.cliente_cven
   } : undefined
 });
 
@@ -66,7 +66,26 @@ export const getCxcs = async (req: Request, res: Response) => {
       .where('cxc.id = :empresaId', { empresaId })
       .orderBy('cxc.dfec', 'DESC');
 
-    // Filter logic adaptable to raw query (using column names)
+    // --- STRICT USER RULES START ---
+    // Rule: ista=0 (Pendiente)
+    queryBuilder.andWhere('cxc.ista = 0');
+
+    // Rule: nsal > 0
+    queryBuilder.andWhere('cxc.nsal > 0');
+
+    // Rule: cdoc in ('FAC', 'ENT')
+    queryBuilder.andWhere("cxc.cdoc IN ('FAC', 'ENT')");
+
+    const vendedorId = req.user?.vendedorId || filter.vendedorId;
+    if (vendedorId) {
+      // Rule: cven = vendedor_apk
+      // Note: User said cven=vendedor_apk in the 999_cxc context.
+      // Cxcobrar entity has 'cven'.
+      queryBuilder.andWhere('cxc.cven = :vendedorId', { vendedorId });
+    }
+    // --- STRICT USER RULES END ---
+
+    // Optional additional filters (if they don't conflict, though user rules imply a strict view)
     if (filter.fechaInicio && filter.fechaFin) {
       queryBuilder.andWhere('cxc.dfec BETWEEN :fechaInicio AND :fechaFin', {
         fechaInicio: new Date(filter.fechaInicio),
@@ -82,20 +101,8 @@ export const getCxcs = async (req: Request, res: Response) => {
       });
     }
 
-    if (filter.estado) {
-      // Map 'pagado'/'pendiente' to 1/0
-      const estadoVal = filter.estado === 'pagado' ? 1 : 0;
-      queryBuilder.andWhere('cxc.ista = :estado', { estado: estadoVal });
-    }
-
-    const vendedorId = req.user?.vendedorId || filter.vendedorId;
-    if (vendedorId) {
-      // 'cven' in cliente table
-      queryBuilder.andWhere('cliente.cven = :vendedorId', { vendedorId });
-    }
-
     if (filter.clienteId) {
-      queryBuilder.andWhere('cliente.codigo = :clienteId', { clienteId: filter.clienteId });
+      queryBuilder.andWhere('cxc.ccli = :clienteId', { clienteId: filter.clienteId });
     }
 
     const rawCxcs = await queryBuilder.getRawMany();
@@ -191,8 +198,8 @@ export const createCxc = async (req: Request, res: Response) => {
     const cliente = await queryRunner.manager.createQueryBuilder()
       .select('cliente')
       .from(clienteTable, 'cliente')
-      .where('cliente.codigo = :codigo', { codigo: clienteCodigo })
-      .andWhere('cliente.empresaId = :empresaId', { empresaId: finalEmpresaId })
+      .where('cliente.ccod = :codigo', { codigo: clienteCodigo })
+      .andWhere('cliente.id = :empresaId', { empresaId: finalEmpresaId })
       .getRawOne();
 
     if (!cliente) {
@@ -219,7 +226,7 @@ export const createCxc = async (req: Request, res: Response) => {
 
     const cxcConRelaciones = await cxcRepository.createQueryBuilder('cxc')
       .from(cxcTable, 'cxc')
-      .leftJoinAndMapOne('cxc.cliente', clienteTable, 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId: finalEmpresaId })
+      .leftJoinAndMapOne('cxc.cliente', clienteTable, 'cliente', 'cxc.ccli = cliente.ccod AND cliente.id = :empresaId', { empresaId: finalEmpresaId })
       .where('cxc.internalId = :id', { id: Number(newId) })
       .getOne();
 
@@ -288,7 +295,7 @@ export const updateCxc = async (req: Request, res: Response) => {
 
     const cxcActualizado = await cxcRepository.createQueryBuilder('cxc')
       .from(tableName, 'cxc')
-      .leftJoinAndMapOne('cxc.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
+      .leftJoinAndMapOne('cxc.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'cxc.ccli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
       .where('cxc.internalId = :id', { id: Number(id) })
       .getOne();
 
@@ -387,9 +394,9 @@ export const getCxcsByCliente = async (req: Request, res: Response) => {
     const queryBuilder = cxcRepository.createQueryBuilder('cxc')
       .from(tableName, 'cxc')
       .leftJoinAndMapOne('cxc.cliente', clienteTable, 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
-      .where('cxc.clienteCodigo = :clienteId', { clienteId })
-      .andWhere('cxc.empresaId = :empresaId', { empresaId })
-      .orderBy('cxc.fecha', 'DESC');
+      .where('cxc.ccli = :clienteId', { clienteId })
+      .andWhere('cxc.id = :empresaId', { empresaId })
+      .orderBy('cxc.dfec', 'DESC');
 
     if (filter.estado) {
       queryBuilder.andWhere('cxc.estado = :estado', { estado: filter.estado });
@@ -430,13 +437,13 @@ export const getResumenCxcsByCliente = async (req: Request, res: Response) => {
 
     const baseQuery = cxcRepository.createQueryBuilder('cxc')
       .from(cxcTable, 'cxc')
-      .where('cxc.clienteCodigo = :clienteId', { clienteId })
-      .andWhere('cxc.empresaId = :empresaId', { empresaId });
+      .where('cxc.ccli = :clienteId', { clienteId })
+      .andWhere('cxc.id = :empresaId', { empresaId });
 
     // Clonamos queries para distintos estados
-    const qPendientes = baseQuery.clone().andWhere("cxc.estado = 'pendiente' AND cxc.fechaVencimiento > NOW()");
-    const qVencidas = baseQuery.clone().andWhere("cxc.estado = 'pendiente' AND cxc.fechaVencimiento <= NOW()");
-    const qPagadas = baseQuery.clone().andWhere("cxc.estado = 'pagado'");
+    const qPendientes = baseQuery.clone().andWhere("cxc.ista = 0 AND cxc.dven > NOW()");
+    const qVencidas = baseQuery.clone().andWhere("cxc.ista = 0 AND cxc.dven <= NOW()");
+    const qPagadas = baseQuery.clone().andWhere("cxc.ista = 1");
 
     const [pendientes, vencidas, pagadas] = await Promise.all([
       qPendientes.getMany(),
@@ -444,9 +451,9 @@ export const getResumenCxcsByCliente = async (req: Request, res: Response) => {
       qPagadas.getMany()
     ]);
 
-    const totalPendiente = pendientes.reduce((sum, cxc) => sum + Number(cxc.monto), 0);
-    const totalVencido = vencidas.reduce((sum, cxc) => sum + Number(cxc.monto), 0);
-    const totalPagado = pagadas.reduce((sum, cxc) => sum + Number(cxc.monto), 0);
+    const totalPendiente = pendientes.reduce((sum, cxc) => sum + Number(cxc.nsal), 0);
+    const totalVencido = vencidas.reduce((sum, cxc) => sum + Number(cxc.nsal), 0);
+    const totalPagado = pagadas.reduce((sum, cxc) => sum + Number(cxc.nsal), 0);
 
     res.json({
       resumen: {
@@ -479,11 +486,11 @@ export const getCxcsVencidas = async (req: Request, res: Response) => {
     const table = getTableName(empresaId, 'cxcobrar');
     const cxcs = await cxcRepository.createQueryBuilder('cxc')
       .from(table, 'cxc')
-      .leftJoinAndMapOne('cxc.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
-      .where('cxc.estado = :estado', { estado: 'pendiente' })
-      .andWhere('cxc.fechaVencimiento < NOW()')
-      .andWhere('cxc.empresaId = :empresaId', { empresaId })
-      .orderBy('cxc.fechaVencimiento', 'ASC')
+      .leftJoinAndMapOne('cxc.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'cxc.ccli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
+      .where('cxc.ista = 0')
+      .andWhere('cxc.dven < NOW()')
+      .andWhere('cxc.id = :empresaId', { empresaId })
+      .orderBy('cxc.dven', 'ASC')
       .getMany();
 
     res.json(cxcs);
@@ -511,11 +518,11 @@ export const getCxcsPorVencer = async (req: Request, res: Response) => {
 
     const cxcs = await cxcRepository.createQueryBuilder('cxc')
       .from(table, 'cxc')
-      .leftJoinAndMapOne('cxc.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'cxc.clienteCodigo = cliente.codigo AND cliente.empresaId = :empresaId', { empresaId })
-      .where('cxc.estado = :estado', { estado: 'pendiente' })
-      .andWhere('cxc.fechaVencimiento BETWEEN :hoy AND :limite', { hoy, limite: fechaLimite })
-      .andWhere('cxc.empresaId = :empresaId', { empresaId })
-      .orderBy('cxc.fechaVencimiento', 'ASC')
+      .leftJoinAndMapOne('cxc.cliente', getTableName(empresaId, 'cliente'), 'cliente', 'cxc.ccli = cliente.ccod AND cliente.id = :empresaId', { empresaId })
+      .where('cxc.ista = 0')
+      .andWhere('cxc.dven BETWEEN :hoy AND :limite', { hoy, limite: fechaLimite })
+      .andWhere('cxc.id = :empresaId', { empresaId })
+      .orderBy('cxc.dven', 'ASC')
       .getMany();
 
     res.json(cxcs);

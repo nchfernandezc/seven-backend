@@ -2,43 +2,43 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validarVendedor = void 0;
 const database_1 = require("../config/database");
-const Vendedor_1 = require("../entities/Vendedor");
-const vendedorRepository = database_1.AppDataSource.getRepository(Vendedor_1.Vendedor);
+const Usuario_1 = require("../entities/Usuario");
+const usuarioRepository = database_1.AppDataSource.getRepository(Usuario_1.Usuario);
 /**
- * Valida las credenciales de un vendedor
+ * Valida las credenciales de un vendedor/usuario (Configuración inicial)
+ * Se consulta la tabla 'a_usuario'
  */
 const validarVendedor = async (req, res) => {
     try {
         const { empresaId, numeroVendedor } = req.params;
-        const vendedor = await vendedorRepository.findOne({
+        // User Refactor: "Where vendedor = vendedor_apk and id=id_apk"
+        // empresaId maps to id_apk (Usuario.id)
+        // numeroVendedor maps to vendedor_apk (Usuario.vendedor)
+        const usuario = await usuarioRepository.findOne({
             where: {
-                codigo: numeroVendedor,
-                empresa: { id: parseInt(empresaId) }
-            },
-            relations: ['empresa']
+                id: Number(empresaId),
+                vendedor: numeroVendedor
+            }
         });
-        if (!vendedor) {
+        if (!usuario) {
             return res.status(404).json({
                 success: false,
-                message: 'Vendedor no encontrado'
+                message: 'Usuario/Vendedor no encontrado en a_usuario'
             });
         }
         res.json({
             success: true,
             data: {
-                id: vendedor.id,
-                codigo: vendedor.codigo,
-                nombre: vendedor.nombre,
-                telefono: vendedor.telefono,
-                empresa: {
-                    id: vendedor.empresa.id,
-                    nombre: vendedor.empresa.nombre
-                }
+                id: usuario.id, // id_apk
+                vendedor: usuario.vendedor, // vendedor_apk
+                usuario: usuario.usuario,
+                detalle: usuario.detalle,
+                // Do not return password (contraseña) unless explicitly needed
             }
         });
     }
     catch (error) {
-        console.error('Error al validar vendedor:', error);
+        console.error('Error al validar vendedor (a_usuario):', error);
         res.status(500).json({
             success: false,
             message: 'Error al validar el vendedor'
