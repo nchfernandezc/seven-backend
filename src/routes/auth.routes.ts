@@ -1,50 +1,47 @@
 // src/routes/auth.routes.ts
 import { Router } from 'express';
-import { validarVendedor } from '../controllers/auth.controller';
+import { login, logout } from '../controllers/auth.controller';
 
 const router = Router();
 
 /**
  * @swagger
- * tags:
- *   name: Auth
- *   description: Autenticación y validación
+ * /auth/login:
+ *   post:
+ *     summary: Iniciar sesión (Configuración inicial)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - usuario
+ *               - password
+ *             properties:
+ *               usuario:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login exitoso
+ *       401:
+ *         description: Credenciales inválidas
  */
+router.post('/login', login);
 
 /**
  * @swagger
- * /auth/validar-vendedor/{empresaId}/{numeroVendedor}:
- *   get:
- *     summary: Valida las credenciales de un vendedor
+ * /auth/logout:
+ *   post:
+ *     summary: Cerrar sesión
  *     tags: [Auth]
- *     parameters:
- *       - in: path
- *         name: empresaId
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID de la empresa
- *       - in: path
- *         name: numeroVendedor
- *         required: true
- *         schema:
- *           type: string
- *         description: Número/Código del vendedor
  *     responses:
  *       200:
- *         description: Vendedor válido
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 valid:
- *                   type: boolean
- *                 vendedor:
- *                   $ref: '#/components/schemas/Vendedor'
- *       404:
- *         description: Vendedor no encontrado
+ *         description: Logout exitoso
  */
-router.get('/validar-vendedor/:empresaId/:numeroVendedor', validarVendedor);
+router.post('/logout', logout);
 
 export default router;

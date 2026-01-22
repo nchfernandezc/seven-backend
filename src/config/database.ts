@@ -20,8 +20,8 @@ const postgresConfig: PostgresConnectionOptions = {
   entities: [__dirname + "/../entities/*.{js,ts}"],
   synchronize: process.env.DB_SYNCHRONIZE === 'true',
   logging: process.env.DB_LOGGING === 'true',
-  ssl: usePostgres ? { 
-    rejectUnauthorized: false 
+  ssl: usePostgres ? {
+    rejectUnauthorized: false
   } : false,
   extra: {
     // Connection pool settings
@@ -36,7 +36,7 @@ const postgresConfig: PostgresConnectionOptions = {
 // Configuración para MySQL (Desarrollo Local)
 const mysqlConfig = {
   type: 'mysql' as const,
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || '127.0.0.1',
   port: parseInt(process.env.DB_PORT || '3306'),
   username: process.env.DB_USERNAME || 'root',
   password: process.env.DB_PASSWORD || '',
@@ -44,11 +44,10 @@ const mysqlConfig = {
   entities: [__dirname + "/../entities/*.{js,ts}"],
   synchronize: process.env.DB_SYNCHRONIZE === 'true',
   logging: process.env.DB_LOGGING === 'true',
-  extra: {
-    connectionLimit: 5,
-    acquireTimeout: 10000,
-    timeout: 10000,
-  }
+  // Remove 'extra' with invalid timeout options, usually not needed for local dev 
+  // or should be structured differently for mysql2.
+  connectorPackage: 'mysql2' as 'mysql2',
+  legacySpatialSupport: false, // Fix for some MariaDB/MySQL type issues
 };
 
 // Seleccionar la configuración apropiada
@@ -62,7 +61,7 @@ export const AppDataSource = new DataSource(databaseConfig);
 export const initializeDatabase = async () => {
   const currentConfig = usePostgres ? postgresConfig : mysqlConfig;
   const dbType = usePostgres ? 'PostgreSQL' : 'MySQL';
-  
+
   console.log('🔍 Database Configuration:');
   console.log(`🛢️  Database Type: ${dbType}`);
   console.log(`📡 Host: ${currentConfig.host}`);
@@ -70,7 +69,7 @@ export const initializeDatabase = async () => {
   console.log(`👤 User: ${currentConfig.username}`);
   console.log(`🔄 Synchronize: ${currentConfig.synchronize}`);
   console.log(`📝 Logging: ${currentConfig.logging}`);
-  
+
   try {
     if (!AppDataSource.isInitialized) {
       await AppDataSource.initialize();
@@ -82,10 +81,10 @@ export const initializeDatabase = async () => {
     return AppDataSource;
   } catch (error) {
     console.error(`❌ ${dbType} connection error:`);
-    
+
     if (error instanceof Error) {
       console.error('📌 Message:', error.message);
-      
+
       // Mostrar solo las primeras líneas del stack trace
       if (error.stack) {
         const stackLines = error.stack.split('\n');
@@ -94,7 +93,7 @@ export const initializeDatabase = async () => {
     } else {
       console.error('Unknown error:', error);
     }
-    
+
     // Agregar consejos para solucionar problemas
     console.log('\n🔧 Troubleshooting tips:');
     console.log('1. Verifica las credenciales de la base de datos en .env');
@@ -102,7 +101,7 @@ export const initializeDatabase = async () => {
     console.log('3. Asegúrate de que la base de datos exista y el usuario tenga permisos');
     console.log('4. Para MySQL: Verifica que el servicio MySQL esté en ejecución');
     console.log('5. Para PostgreSQL: Verifica que el servicio PostgreSQL esté en ejecución');
-    
+
     throw error; // Re-lanzar para que lo maneje el llamador
   }
 };

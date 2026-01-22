@@ -34,7 +34,7 @@ const postgresConfig = {
 // Configuración para MySQL (Desarrollo Local)
 const mysqlConfig = {
     type: 'mysql',
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST || '127.0.0.1',
     port: parseInt(process.env.DB_PORT || '3306'),
     username: process.env.DB_USERNAME || 'root',
     password: process.env.DB_PASSWORD || '',
@@ -42,11 +42,10 @@ const mysqlConfig = {
     entities: [__dirname + "/../entities/*.{js,ts}"],
     synchronize: process.env.DB_SYNCHRONIZE === 'true',
     logging: process.env.DB_LOGGING === 'true',
-    extra: {
-        connectionLimit: 5,
-        acquireTimeout: 10000,
-        timeout: 10000,
-    }
+    // Remove 'extra' with invalid timeout options, usually not needed for local dev 
+    // or should be structured differently for mysql2.
+    connectorPackage: 'mysql2',
+    legacySpatialSupport: false, // Fix for some MariaDB/MySQL type issues
 };
 // Seleccionar la configuración apropiada
 const databaseConfig = usePostgres ? postgresConfig : mysqlConfig;

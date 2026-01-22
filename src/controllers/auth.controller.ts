@@ -8,42 +8,52 @@ const usuarioRepository = AppDataSource.getRepository(Usuario);
  * Valida las credenciales de un vendedor/usuario (Configuración inicial)
  * Se consulta la tabla 'a_usuario'
  */
-export const validarVendedor = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response) => {
     try {
-        const { empresaId, numeroVendedor } = req.params;
+        const { usuario, password } = req.body;
 
-        // User Refactor: "Where vendedor = vendedor_apk and id=id_apk"
-        // empresaId maps to id_apk (Usuario.id)
-        // numeroVendedor maps to vendedor_apk (Usuario.vendedor)
-        const usuario = await usuarioRepository.findOne({
+        if (!usuario || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Usuario y contraseña son requeridos'
+            });
+        }
+
+        const user = await usuarioRepository.findOne({
             where: {
-                id: Number(empresaId),
-                vendedor: numeroVendedor
+                usuario: usuario,
+                contra: password // Mapping 'contraseña' column which is 'contra' in entity
             }
         });
 
-        if (!usuario) {
-            return res.status(404).json({
+        if (!user) {
+            return res.status(401).json({
                 success: false,
-                message: 'Usuario/Vendedor no encontrado en a_usuario'
+                message: 'Credenciales inválidas'
             });
         }
 
         res.json({
             success: true,
             data: {
-                id: usuario.id, // id_apk
-                vendedor: usuario.vendedor, // vendedor_apk
-                usuario: usuario.usuario,
-                detalle: usuario.detalle,
-                // Do not return password (contraseña) unless explicitly needed
+                id: user.id, // id_apk -> id (Empresa ID)
+                vendedor: user.vendedor, // vendedor_apk -> vendedor (Vendedor ID)
+                usuario: user.usuario,
+                detalle: user.detalle
             }
         });
     } catch (error) {
-        console.error('Error al validar vendedor (a_usuario):', error);
+        console.error('Error en login:', error);
         res.status(500).json({
             success: false,
-            message: 'Error al validar el vendedor'
+            message: 'Error interno del servidor'
         });
     }
+};
+
+export const logout = async (req: Request, res: Response) => {
+    res.json({
+        success: true,
+        message: 'Sesión cerrada correctamente'
+    });
 };
