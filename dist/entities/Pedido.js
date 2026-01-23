@@ -11,13 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Pedido = void 0;
 const typeorm_1 = require("typeorm");
-const Cliente_1 = require("./Cliente");
-const Articulo_1 = require("./Articulo");
 let Pedido = class Pedido {
-    constructor() {
-        // App required fields
-        this.isDeleted = false;
-    }
 };
 exports.Pedido = Pedido;
 __decorate([
@@ -193,34 +187,6 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'iam2', type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], Pedido.prototype, "iam2", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'is_deleted', default: false }),
-    __metadata("design:type", Boolean)
-], Pedido.prototype, "isDeleted", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'last_synced_at', type: 'datetime', nullable: true }),
-    __metadata("design:type", Date)
-], Pedido.prototype, "lastSyncedAt", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'device_id', type: 'varchar', length: 100, nullable: true }),
-    __metadata("design:type", String)
-], Pedido.prototype, "deviceId", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => Cliente_1.Cliente, { createForeignKeyConstraints: false }),
-    (0, typeorm_1.JoinColumn)([
-        { name: 'id', referencedColumnName: 'id' },
-        { name: 'cli', referencedColumnName: 'ccod' }
-    ]),
-    __metadata("design:type", Cliente_1.Cliente)
-], Pedido.prototype, "cliente", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => Articulo_1.Articulo, { createForeignKeyConstraints: false }),
-    (0, typeorm_1.JoinColumn)([
-        { name: 'id', referencedColumnName: 'id' },
-        { name: 'cod', referencedColumnName: 'ccod' }
-    ]),
-    __metadata("design:type", Articulo_1.Articulo)
-], Pedido.prototype, "articulo", void 0);
 exports.Pedido = Pedido = __decorate([
     (0, typeorm_1.Entity)('pedidos')
 ], Pedido);

@@ -3,28 +3,29 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.extractHeaders = void 0;
 /**
  * Middleware 'extractHeaders'
- * Extrae los IDs de empresa y vendedor de los encabezados HTTP (x-company-id, x-salesperson-id).
- * Inyecta estos datos en req.user para su uso en los controladores.
+ * Extrae los identificadores de empresa y vendedor de los encabezados HTTP.
  */
-const extractHeaders = (req, res, next) => {
+const extractHeaders = (req, _res, next) => {
     try {
-        // User requested exclusive use of _apk headers
-        const companyId = req.headers['id_apk'];
-        const salespersonId = req.headers['vendedor_apk'];
-        console.log('=== MIDDLEWARE: Headers recibidos ===');
-        console.log('id_apk:', companyId);
-        console.log('vendedor_apk:', salespersonId);
-        if (companyId) {
-            req.user = {
-                empresaId: Number(companyId),
-                vendedorId: salespersonId
-            };
-            console.log('req.user establecido:', req.user);
+        const rawEmpresaId = req.headers['id_apk'] || req.headers['x-company-id'];
+        const rawVendedorId = req.headers['vendedor_apk'] || req.headers['x-salesperson-id'];
+        if (rawEmpresaId) {
+            const empresaId = Number(rawEmpresaId);
+            if (!isNaN(empresaId)) {
+                // Inicializar req.user si no existe para evitar el error de "undefined"
+                if (!req.user) {
+                    req.user = {
+                        empresaId: 0 // Valor temporal que será sobrescrito
+                    };
+                }
+                req.user.empresaId = empresaId;
+                req.user.vendedorId = rawVendedorId ? String(rawVendedorId) : undefined;
+            }
         }
         next();
     }
     catch (error) {
-        console.error('Error en extractHeaders middleware:', error);
+        console.error('[Middleware] Error al extraer headers:', error);
         next();
     }
 };

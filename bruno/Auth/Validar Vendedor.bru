@@ -4,13 +4,20 @@ meta {
   seq: 1
 }
 
-get {
-  url: {{baseUrl}}/api/auth/validar-vendedor/:empresaId/:numeroVendedor
-  body: none
+post {
+  url: http://localhost:3000/api/auth/login
+  body: json
   auth: none
 }
 
-params:path {
-  empresaId: 1
-  numeroVendedor: VEN001
+body:json {
+  {
+    "username": "Vendedor 1",
+    "contra": "1234"
+  }
+}
+
+headers {
+  id_apk: 1
+  vendedor_apk: VEN001
 }

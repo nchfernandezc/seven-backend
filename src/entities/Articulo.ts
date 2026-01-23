@@ -1,5 +1,4 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
-import { Empresa } from './Empresa';
 
 @Entity('articulos')
 @Index(['id', 'ccod'], { unique: true })
@@ -33,23 +32,4 @@ export class Articulo {
 
     @Column({ name: 'ides', type: 'int', default: 0 })
     ides!: number;
-
-    // Campos de BaseModel que quizás necesitemos mantener para la app offline
-    @Column({ name: 'is_deleted', default: false })
-    isDeleted: boolean = false;
-
-    @Column({ name: 'last_synced_at', type: 'datetime', nullable: true })
-    lastSyncedAt?: Date;
-
-    @Column({ name: 'device_id', type: 'varchar', length: 100, nullable: true })
-    deviceId?: string;
-
-    @Column({ name: 'dfec', type: 'datetime', nullable: true })
-    fecha!: Date;
-
-    @ManyToOne(() => Empresa, (empresa) => empresa.articulos, {
-        onDelete: 'CASCADE',
-    })
-    @JoinColumn({ name: 'id' })
-    empresa!: Empresa;
 }

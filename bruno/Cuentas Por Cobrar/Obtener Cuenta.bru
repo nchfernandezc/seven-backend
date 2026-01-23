@@ -1,15 +1,20 @@
 meta {
   name: Obtener Cuenta
   type: http
-  seq: 3
+  seq: 2
 }
 
 get {
   url: {{baseUrl}}/api/cuentas-por-cobrar/:id
-  body: none
+  body: json
   auth: none
 }
 
 params:path {
   id: 1
+}
+
+headers {
+  id_apk: {{id_apk}}
+  vendedor_apk: {{vendedor_apk}}
 }

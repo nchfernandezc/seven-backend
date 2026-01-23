@@ -11,12 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Articulo = void 0;
 const typeorm_1 = require("typeorm");
-const Empresa_1 = require("./Empresa");
 let Articulo = class Articulo {
-    constructor() {
-        // Campos de BaseModel que quizás necesitemos mantener para la app offline
-        this.isDeleted = false;
-    }
 };
 exports.Articulo = Articulo;
 __decorate([
@@ -59,29 +54,6 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'ides', type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], Articulo.prototype, "ides", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'is_deleted', default: false }),
-    __metadata("design:type", Boolean)
-], Articulo.prototype, "isDeleted", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'last_synced_at', type: 'datetime', nullable: true }),
-    __metadata("design:type", Date)
-], Articulo.prototype, "lastSyncedAt", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'device_id', type: 'varchar', length: 100, nullable: true }),
-    __metadata("design:type", String)
-], Articulo.prototype, "deviceId", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'dfec', type: 'datetime', nullable: true }),
-    __metadata("design:type", Date)
-], Articulo.prototype, "fecha", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => Empresa_1.Empresa, (empresa) => empresa.articulos, {
-        onDelete: 'CASCADE',
-    }),
-    (0, typeorm_1.JoinColumn)({ name: 'id' }),
-    __metadata("design:type", Empresa_1.Empresa)
-], Articulo.prototype, "empresa", void 0);
 exports.Articulo = Articulo = __decorate([
     (0, typeorm_1.Entity)('articulos'),
     (0, typeorm_1.Index)(['id', 'ccod'], { unique: true })

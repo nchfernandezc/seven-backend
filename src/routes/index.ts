@@ -3,10 +3,7 @@ import articuloRoutes from './articulo.routes';
 import clienteRoutes from './cliente.routes';
 import cxcRoutes from './cxc.routes';
 import pedidoRoutes from './pedido.routes';
-import empresaRoutes from './empresa.routes';
-import vendedorRoutes from './vendedor.routes';
 import authRoutes from './auth.routes';
-import syncRoutes from './sync.routes';
 import statsRoutes from './stats.routes';
 
 const router = Router();
@@ -35,10 +32,7 @@ router.use('/api/articulos', articuloRoutes);
 router.use('/api/clientes', clienteRoutes);
 router.use('/api/cuentas-por-cobrar', cxcRoutes);
 router.use('/api/pedidos', pedidoRoutes);
-router.use('/api/empresas', empresaRoutes);
-router.use('/api/vendedores', vendedorRoutes);
 router.use('/api/auth', authRoutes);
-router.use('/api', syncRoutes);
 router.use('/api/stats', statsRoutes);
 
 export default router;

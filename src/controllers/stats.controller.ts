@@ -1,17 +1,13 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
-import { Pedido } from '../entities/Pedido';
-import { Cliente } from '../entities/Cliente';
-import { Articulo } from '../entities/Articulo';
 import { getTableName } from '../utils/tableName';
 
-const pedidoRepository = AppDataSource.getRepository(Pedido);
-const clienteRepository = AppDataSource.getRepository(Cliente);
-const articuloRepository = AppDataSource.getRepository(Articulo);
-
+/**
+ * Obtiene las estadísticas generales para el dashboard
+ */
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
-        const { empresaId } = req.user || {};
+        const { empresaId } = (req as any).user || {};
 
         if (!empresaId) {
             return res.status(403).json({ message: 'No se ha especificado la empresa' });
@@ -21,43 +17,24 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         const clienteTable = getTableName(empresaId, 'cliente');
         const articuloTable = getTableName(empresaId, 'articulo');
 
-        // Execute queries in parallel using raw table names
-        const [totalOrdersResult, totalClientsResult, totalProductsResult] = await Promise.all([
-            // Count orders
-            AppDataSource.createQueryBuilder()
-                .select('COUNT(*)', 'count')
-                .from(pedidoTable, 'pedido')
-                .where('pedido.id = :empresaId', { empresaId })
-                .getRawOne(),
-
-            // Count clients
-            AppDataSource.createQueryBuilder()
-                .select('COUNT(*)', 'count')
-                .from(clienteTable, 'cliente')
-                .where('cliente.id = :empresaId', { empresaId })
-                .getRawOne(),
-
-            // Count products
-            AppDataSource.createQueryBuilder()
-                .select('COUNT(*)', 'count')
-                .from(articuloTable, 'articulo')
-                .where('articulo.id = :empresaId', { empresaId })
-                .getRawOne()
+        // Ejecutamos los conteos en paralelo para mejor rendimiento usando query raw
+        const [ordersResult, clientsResult, productsResult] = await Promise.all([
+            AppDataSource.query(`SELECT COUNT(*) as count FROM \`${pedidoTable}\` WHERE id = ?`, [empresaId]),
+            AppDataSource.query(`SELECT COUNT(*) as count FROM \`${clienteTable}\` WHERE id = ?`, [empresaId]),
+            AppDataSource.query(`SELECT COUNT(*) as count FROM \`${articuloTable}\` WHERE id = ?`, [empresaId])
         ]);
 
-        const totalOrders = parseInt(totalOrdersResult?.count || '0');
-        const totalClients = parseInt(totalClientsResult?.count || '0');
-        const totalProducts = parseInt(totalProductsResult?.count || '0');
-
         res.json({
-            totalOrders,
-            totalClients,
-            totalProducts
+            totalOrders: parseInt(ordersResult[0]?.count || '0'),
+            totalClients: parseInt(clientsResult[0]?.count || '0'),
+            totalProducts: parseInt(productsResult[0]?.count || '0')
         });
 
-    } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    } catch (error) {
         console.error('Error al obtener estadísticas:', error);
-        res.status(500).json({ message: 'Error al obtener estadísticas', error: errorMessage });
+        res.status(500).json({
+            message: 'Error al obtener estadísticas',
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        });
     }
 };

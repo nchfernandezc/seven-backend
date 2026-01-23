@@ -1,11 +1,16 @@
 meta {
   name: Listar Clientes
   type: http
-  seq: 2
+  seq: 1
 }
 
 get {
   url: {{baseUrl}}/api/clientes
   body: none
   auth: none
+}
+
+headers {
+  id_apk: 1
+  vendedor_apk: VEN001
 }

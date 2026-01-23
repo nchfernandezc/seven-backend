@@ -1,8 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-import { Cxcobrar } from './Cxcobrar';
-import { Pedido } from './Pedido';
-
-import { Empresa } from './Empresa';
+import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, OneToMany, JoinColumn } from 'typeorm';;
 
 @Entity('clientes')
 @Index(['id', 'ccod'], { unique: true })
@@ -27,32 +23,4 @@ export class Cliente {
 
     @Column({ name: 'cven', type: 'varchar', length: 10, nullable: false, default: '' })
     cven!: string;
-
-    // Campos App
-    @Column({ name: 'is_deleted', default: false })
-    isDeleted: boolean = false;
-
-    @Column({ name: 'last_synced_at', type: 'datetime', nullable: true })
-    lastSyncedAt?: Date;
-
-    @Column({ name: 'device_id', type: 'varchar', length: 100, nullable: true })
-    deviceId?: string;
-
-    @ManyToOne(() => Empresa)
-    @JoinColumn({ name: 'id' })
-    empresa!: Empresa;
-
-
-
-    @OneToMany(() => Cxcobrar, (cxc) => cxc.cliente, {
-        cascade: true,
-        onDelete: 'CASCADE',
-    })
-    cuentasPorCobrar!: Cxcobrar[];
-
-    @OneToMany(() => Pedido, (pedido) => pedido.cliente, {
-        cascade: true,
-        onDelete: 'CASCADE',
-    })
-    pedidos!: Pedido[];
 }

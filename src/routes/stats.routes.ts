@@ -25,5 +25,6 @@ const router = Router();
  *                   type: integer
  */
 router.get('/', getDashboardStats);
+router.get('/dashboard', getDashboardStats);
 
 export default router;

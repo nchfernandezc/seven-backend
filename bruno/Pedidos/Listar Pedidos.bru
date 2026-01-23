@@ -5,7 +5,12 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/pedidos
+  url: http://localhost:3000/api/pedidos
   body: none
   auth: none
+}
+
+headers {
+  id_apk: 1
+  vendedor_apk: VEN001
 }

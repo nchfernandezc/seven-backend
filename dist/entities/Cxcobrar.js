@@ -11,12 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cxcobrar = void 0;
 const typeorm_1 = require("typeorm");
-const Cliente_1 = require("./Cliente");
 let Cxcobrar = class Cxcobrar {
-    constructor() {
-        // App required fields
-        this.isDeleted = false;
-    }
 };
 exports.Cxcobrar = Cxcobrar;
 __decorate([
@@ -55,29 +50,6 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'cven', type: 'varchar', length: 10, nullable: false }),
     __metadata("design:type", String)
 ], Cxcobrar.prototype, "cven", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'is_deleted', default: false }),
-    __metadata("design:type", Boolean)
-], Cxcobrar.prototype, "isDeleted", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'last_synced_at', type: 'datetime', nullable: true }),
-    __metadata("design:type", Date)
-], Cxcobrar.prototype, "lastSyncedAt", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'device_id', type: 'varchar', length: 100, nullable: true }),
-    __metadata("design:type", String)
-], Cxcobrar.prototype, "deviceId", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => Cliente_1.Cliente, cliente => cliente.cuentasPorCobrar, {
-        eager: true,
-        onDelete: 'CASCADE'
-    }),
-    (0, typeorm_1.JoinColumn)([
-        { name: 'id', referencedColumnName: 'id' },
-        { name: 'ccli', referencedColumnName: 'ccod' }
-    ]),
-    __metadata("design:type", Cliente_1.Cliente)
-], Cxcobrar.prototype, "cliente", void 0);
 exports.Cxcobrar = Cxcobrar = __decorate([
     (0, typeorm_1.Entity)('cxcobrar')
 ], Cxcobrar);

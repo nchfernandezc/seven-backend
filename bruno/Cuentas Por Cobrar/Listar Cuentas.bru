@@ -6,6 +6,11 @@ meta {
 
 get {
   url: {{baseUrl}}/api/cuentas-por-cobrar
-  body: none
+  body: json
   auth: none
+}
+
+headers {
+  id_apk: {{id_apk}}
+  vendedor_apk: {{vendedor_apk}}
 }

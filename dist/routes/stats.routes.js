@@ -25,4 +25,5 @@ const router = (0, express_1.Router)();
  *                   type: integer
  */
 router.get('/', stats_controller_1.getDashboardStats);
+router.get('/dashboard', stats_controller_1.getDashboardStats);
 exports.default = router;

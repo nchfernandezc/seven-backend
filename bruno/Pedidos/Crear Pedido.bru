@@ -1,26 +1,27 @@
 meta {
   name: Crear Pedido
   type: http
-  seq: 3
+  seq: 4
 }
 
 post {
-  url: {{baseUrl}}/api/pedidos
+  url: http://localhost:3000/api/pedidos
   body: json
   auth: none
+}
+
+body:json {
+  {
+    "num": "PED-TEST-001",
+    "cod": "ART001",
+    "des": "Producto de Prueba",
+    "can": 2,
+    "pre": 50.50,
+    "cli": "C001"
+  }
 }
 
 headers {
   id_apk: 1
   vendedor_apk: VEN001
-}
-
-body:json {
-  {
-    "num": "PED-001",
-    "cod": "TEST-001",
-    "can": 10,
-    "pre": 100,
-    "cli": "C-001"
-  }
 }

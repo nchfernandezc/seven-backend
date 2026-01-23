@@ -5,13 +5,17 @@ const database_1 = require("../config/database");
 const Usuario_1 = require("../entities/Usuario");
 const usuarioRepository = database_1.AppDataSource.getRepository(Usuario_1.Usuario);
 /**
- * Valida las credenciales de un vendedor/usuario (Configuración inicial)
- * Se consulta la tabla 'a_usuario'
+ * Valida las credenciales de un usuario (tabla a_usuario)
  */
 const login = async (req, res) => {
     try {
-        const { usuario, password } = req.body;
-        if (!usuario || !password) {
+        console.log('--- LOGIN ATTEMPT ---');
+        console.log('Body received:', JSON.stringify(req.body, null, 2));
+        // Compatibilidad con ambos formatos (APK usa usuario/password, Bruno/Web usa username/contra)
+        const username = req.body.username || req.body.usuario;
+        const contra = req.body.contra || req.body.password;
+        if (!username || !contra) {
+            console.log('Validation failed: Username or password missing in body');
             return res.status(400).json({
                 success: false,
                 message: 'Usuario y contraseña son requeridos'
@@ -19,8 +23,8 @@ const login = async (req, res) => {
         }
         const user = await usuarioRepository.findOne({
             where: {
-                usuario: usuario,
-                contra: password // Mapping 'contraseña' column which is 'contra' in entity
+                usuario: username,
+                contra: contra
             }
         });
         if (!user) {
@@ -29,11 +33,12 @@ const login = async (req, res) => {
                 message: 'Credenciales inválidas'
             });
         }
+        // Retornamos los datos necesarios para la app envueltos en success/data
         res.json({
             success: true,
             data: {
-                id: user.id, // id_apk -> id (Empresa ID)
-                vendedor: user.vendedor, // vendedor_apk -> vendedor (Vendedor ID)
+                id: user.id, // ID de empresa
+                vendedor: user.vendedor, // ID de vendedor
                 usuario: user.usuario,
                 detalle: user.detalle
             }
@@ -43,15 +48,16 @@ const login = async (req, res) => {
         console.error('Error en login:', error);
         res.status(500).json({
             success: false,
-            message: 'Error interno del servidor'
+            message: 'Error interno del servidor',
+            error: error instanceof Error ? error.message : 'Error'
         });
     }
 };
 exports.login = login;
-const logout = async (req, res) => {
-    res.json({
-        success: true,
-        message: 'Sesión cerrada correctamente'
-    });
+/**
+ * Finaliza la sesión
+ */
+const logout = async (_req, res) => {
+    res.json({ message: 'Sesión cerrada correctamente' });
 };
 exports.logout = logout;

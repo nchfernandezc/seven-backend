@@ -5,7 +5,12 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/stats
-  body: none
+  url: {{baseUrl}}/api/stats/dashboard
+  body: json
   auth: none
+}
+
+headers {
+  id_apk: 1
+  vendedor_apk: VEN001
 }

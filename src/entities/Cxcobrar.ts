@@ -1,5 +1,4 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Cliente } from './Cliente';
 
 /**
  * Entidad 'Cxcobrar' -> 'cxc'
@@ -36,23 +35,4 @@ export class Cxcobrar {
     @Column({ name: 'cven', type: 'varchar', length: 10, nullable: false })
     cven!: string;
 
-    // App required fields
-    @Column({ name: 'is_deleted', default: false })
-    isDeleted: boolean = false;
-
-    @Column({ name: 'last_synced_at', type: 'datetime', nullable: true })
-    lastSyncedAt?: Date;
-
-    @Column({ name: 'device_id', type: 'varchar', length: 100, nullable: true })
-    deviceId?: string;
-
-    @ManyToOne(() => Cliente, cliente => cliente.cuentasPorCobrar, {
-        eager: true,
-        onDelete: 'CASCADE'
-    })
-    @JoinColumn([
-        { name: 'id', referencedColumnName: 'id' },
-        { name: 'ccli', referencedColumnName: 'ccod' }
-    ])
-    cliente!: Cliente;
 }

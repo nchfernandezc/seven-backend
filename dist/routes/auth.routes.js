@@ -17,12 +17,12 @@ const router = (0, express_1.Router)();
  *           schema:
  *             type: object
  *             required:
- *               - usuario
- *               - password
+ *               - username
+ *               - contra
  *             properties:
- *               usuario:
+ *               username:
  *                 type: string
- *               password:
+ *               contra:
  *                 type: string
  *     responses:
  *       200:

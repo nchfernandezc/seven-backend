@@ -14,13 +14,35 @@ const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-company-id', 'x-salesperson-id']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-company-id', 'x-salesperson-id', 'id_apk', 'vendedor_apk']
 }));
+// Logger básico para ver las peticiones
+app.use((req, _res, next) => {
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.originalUrl}`);
+    next();
+});
+app.use(express_1.default.json());
 // Middleware para extraer headers
 app.use(extractHeaders_1.extractHeaders);
-app.use(express_1.default.json());
 // Rutas de la API
 app.use('/', routes_1.default);
+// Manejo de rutas no encontradas (404)
+app.use((_req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `Ruta no encontrada: ${_req.originalUrl}`
+    });
+});
+// Manejo de errores globales (500)
+const errorHandler = (err, _req, res, _next) => {
+    console.error('[Global Error]:', err);
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message || 'Error interno del servidor',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+};
+app.use(errorHandler);
 // Configuración de Swagger
 app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.default, {
     explorer: true,

@@ -1,15 +1,20 @@
 meta {
   name: Obtener Por Cliente
   type: http
-  seq: 6
+  seq: 3
 }
 
 get {
-  url: {{baseUrl}}/api/pedidos/cliente/:clienteId
+  url: http://localhost:3000/api/pedidos/cliente/:clienteId
   body: none
   auth: none
 }
 
 params:path {
-  clienteId: C-001
+  clienteId: C001
+}
+
+headers {
+  id_apk: 1
+  vendedor_apk: VEN001
 }

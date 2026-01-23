@@ -1,6 +1,4 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { Cliente } from './Cliente';
-import { Articulo } from './Articulo';
 
 @Entity('pedidos')
 export class Pedido {
@@ -133,28 +131,4 @@ export class Pedido {
 
     @Column({ name: 'iam2', type: 'int', default: 0 })
     iam2!: number;
-
-    // App required fields
-    @Column({ name: 'is_deleted', default: false })
-    isDeleted: boolean = false;
-
-    @Column({ name: 'last_synced_at', type: 'datetime', nullable: true })
-    lastSyncedAt?: Date;
-
-    @Column({ name: 'device_id', type: 'varchar', length: 100, nullable: true })
-    deviceId?: string;
-
-    @ManyToOne(() => Cliente, { createForeignKeyConstraints: false })
-    @JoinColumn([
-        { name: 'id', referencedColumnName: 'id' },
-        { name: 'cli', referencedColumnName: 'ccod' }
-    ])
-    cliente!: Cliente;
-
-    @ManyToOne(() => Articulo, { createForeignKeyConstraints: false })
-    @JoinColumn([
-        { name: 'id', referencedColumnName: 'id' },
-        { name: 'cod', referencedColumnName: 'ccod' }
-    ])
-    articulo!: Articulo;
 }

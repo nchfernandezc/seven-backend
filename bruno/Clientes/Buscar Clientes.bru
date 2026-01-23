@@ -1,15 +1,20 @@
 meta {
   name: Buscar Clientes
   type: http
-  seq: 1
+  seq: 3
 }
 
 get {
-  url: {{baseUrl}}/api/clientes/buscar?q=Juan
+  url: {{baseUrl}}/api/clientes/buscar?q=juan
   body: none
   auth: none
 }
 
 params:query {
-  q: Juan
+  q: juan
+}
+
+headers {
+  id_apk: 1
+  vendedor_apk: VEN001
 }
