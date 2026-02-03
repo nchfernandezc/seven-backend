@@ -1,4 +1,3 @@
-
 import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 
 @Entity('a_usuario')
