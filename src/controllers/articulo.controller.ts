@@ -2,61 +2,58 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
 import { getTableName } from '../utils/tableName';
 
-/**
- * Obtiene todos los artículos de una empresa
- */
 export const getArticulos = async (req: Request, res: Response) => {
-  try {
-    const { empresaId } = (req as any).user || {};
-    if (!empresaId) return res.status(403).json({ message: 'No se ha especificado la empresa' });
+    try {
+        const { empresaId } = (req as any).user || {};
+        if (!empresaId) return res.status(403).json({ message: 'Empresa no identificada' });
 
-    const tableName = getTableName(empresaId, 'articulo');
+        const tableName = getTableName(empresaId, 'articulo');
 
-    // Usamos QueryBuilder genérico para evitar conflictos con la metadata de la Entity
-    // pero indicamos que queremos el resultado como tipo 'Articulo'
-    const articulos = await AppDataSource.createQueryBuilder()
-      .select('a.*')
-      .from(tableName, 'a')
-      .where('a.id = :empresaId', { empresaId })
-      .orderBy('a.cdet', 'ASC')
-      .getRawMany();
+        const query = AppDataSource.createQueryBuilder()
+            .select('a.*')
+            .from(tableName, 'a')
+            .where('a.id = :empresaId', { empresaId });
 
-    res.json(articulos);
-  } catch (error) {
-    console.error('Error al obtener artículos:', error);
-    res.status(500).json({
-      message: 'Error al obtener los artículos',
-      error: error instanceof Error ? error.message : 'Error'
-    });
-  }
+        const articulos = await query.orderBy('a.cdet', 'ASC').getRawMany();
+        res.json(articulos);
+    } catch (error) {
+        console.error('[Articulos] Error:', error);
+        res.status(500).json({
+            message: 'Error al obtener artículos',
+            error: error instanceof Error ? error.message : String(error)
+        });
+    }
 };
 
-/**
- * Obtiene un artículo por ID
- */
 export const getArticuloById = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { empresaId } = (req as any).user || {};
-    if (!empresaId) return res.status(403).json({ message: 'No se ha especificado la empresa' });
+    try {
+        const { id } = req.params;
+        const { empresaId } = (req as any).user || {};
+        const tableName = getTableName(empresaId, 'articulo');
 
-    const tableName = getTableName(empresaId, 'articulo');
+        const articulo = await AppDataSource.createQueryBuilder()
+            .select('a.*')
+            .from(tableName, 'a')
+            .where('a.xxx = :id AND a.id = :empresaId', { id, empresaId })
+            .getRawOne();
 
-    const articulo = await AppDataSource.createQueryBuilder()
-      .select('a.*')
-      .from(tableName, 'a')
-      .where('a.xxx = :id', { id: Number(id) })
-      .andWhere('a.id = :empresaId', { empresaId })
-      .getRawOne();
+        if (!articulo) return res.status(404).json({ message: 'Artículo no encontrado' });
+        res.json(articulo);
+    } catch (error) {
+        console.error('[Articulos] GetById Error:', error);
+        res.status(500).json({ message: 'Error al obtener artículo' });
+    }
+};
 
-    if (!articulo) return res.status(404).json({ message: 'Artículo no encontrado' });
+// Placeholder functions if they are imported in routes
+export const createArticulo = async (req: Request, res: Response) => {
+    res.status(501).json({ message: 'No implementado' });
+};
 
-    res.json(articulo);
-  } catch (error) {
-    console.error('Error al obtener artículo:', error);
-    res.status(500).json({
-      message: 'Error al obtener el artículo',
-      error: error instanceof Error ? error.message : 'Error'
-    });
-  }
+export const updateArticulo = async (req: Request, res: Response) => {
+    res.status(501).json({ message: 'No implementado' });
+};
+
+export const deleteArticulo = async (req: Request, res: Response) => {
+    res.status(501).json({ message: 'No implementado' });
 };

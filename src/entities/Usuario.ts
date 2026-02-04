@@ -18,6 +18,6 @@ export class Usuario {
     @Column({ name: 'vendedor', type: 'varchar', length: 50, nullable: false })
     vendedor!: string; // vendedor_apk
 
-    @Column({ name: 'contraseña', type: 'varchar', length: 100, nullable: false })
-    contra!: string; // Password (using 'contrasenda' to avoid special chars in property, mapped to 'contraseña')
+    @Column({ name: 'clave', type: 'varchar', length: 100, nullable: false })
+    clave!: string; // El campo en la BDD y en el código ahora es 'clave'
 }

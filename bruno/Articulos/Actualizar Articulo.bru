@@ -1,0 +1,27 @@
+meta {
+  name: Actualizar Articulo
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/articulos/:id
+  body: json
+  auth: none
+}
+
+params:path {
+  id: 1
+}
+
+headers {
+  id_apk: {{id_apk}}
+  vendedor_apk: {{vendedor_apk}}
+}
+
+body:json {
+  {
+    "cdet": "Articulo Actualizado",
+    "npre1": 1500
+  }
+}

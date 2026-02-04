@@ -1,0 +1,20 @@
+meta {
+  name: Eliminar Articulo
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/articulos/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: 1
+}
+
+headers {
+  id_apk: {{id_apk}}
+  vendedor_apk: {{vendedor_apk}}
+}

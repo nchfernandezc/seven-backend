@@ -1,7 +1,10 @@
 import { Router } from 'express';
-import { 
-  getArticulos, 
-  getArticuloById, 
+import {
+  getArticulos,
+  getArticuloById,
+  createArticulo,
+  updateArticulo,
+  deleteArticulo,
 } from '../controllers/articulo.controller';
 
 const router = Router();

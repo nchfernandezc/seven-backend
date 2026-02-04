@@ -1,0 +1,25 @@
+meta {
+  name: Crear Articulo
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/articulos
+  body: json
+  auth: none
+}
+
+headers {
+  id_apk: {{id_apk}}
+  vendedor_apk: {{vendedor_apk}}
+}
+
+body:json {
+  {
+    "ccod": "TEST001",
+    "cdet": "Articulo de Prueba",
+    "npre1": 1000,
+    "ncan1": 50
+  }
+}

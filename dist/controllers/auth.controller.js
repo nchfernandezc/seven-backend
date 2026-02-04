@@ -11,20 +11,20 @@ const login = async (req, res) => {
     try {
         console.log('--- LOGIN ATTEMPT ---');
         console.log('Body received:', JSON.stringify(req.body, null, 2));
-        // Compatibilidad con ambos formatos (APK usa usuario/password, Bruno/Web usa username/contra)
+        // Forzamos el uso de 'clave'
         const username = req.body.username || req.body.usuario;
-        const contra = req.body.contra || req.body.password;
-        if (!username || !contra) {
-            console.log('Validation failed: Username or password missing in body');
+        const clave = req.body.clave || req.body.contra || req.body.password;
+        if (!username || !clave) {
+            console.log('Validation failed: Username or clave missing in body');
             return res.status(400).json({
                 success: false,
-                message: 'Usuario y contraseña son requeridos'
+                message: 'Usuario y clave son requeridos'
             });
         }
         const user = await usuarioRepository.findOne({
             where: {
                 usuario: username,
-                contra: contra
+                clave: clave
             }
         });
         if (!user) {
@@ -40,7 +40,8 @@ const login = async (req, res) => {
                 id: user.id, // ID de empresa
                 vendedor: user.vendedor, // ID de vendedor
                 usuario: user.usuario,
-                detalle: user.detalle
+                detalle: user.detalle,
+                clave: user.clave
             }
         });
     }

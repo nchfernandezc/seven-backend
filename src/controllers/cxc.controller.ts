@@ -8,32 +8,53 @@ import { getTableName } from '../utils/tableName';
 export const getCxcs = async (req: Request, res: Response) => {
   try {
     const { empresaId, vendedorId } = (req as any).user || {};
-    if (!empresaId) return res.status(403).json({ message: 'Empresa no identificada' });
+    console.log('[CXC DEBUG] User context:', { empresaId, vendedorId });
+
+    if (!empresaId) {
+      console.error('[CXC ERROR] No empresaId found in request user');
+      return res.status(403).json({ message: 'Empresa no identificada' });
+    }
 
     const { clienteId, fechaInicio, fechaFin } = req.query;
     const cxcTable = getTableName(empresaId, 'cxcobrar');
     const clienteTable = getTableName(empresaId, 'cliente');
 
-    const query = AppDataSource.createQueryBuilder()
-      .select('cxc.*')
-      .addSelect('c.cdet', 'cliente_nombre')
-      .from(cxcTable, 'cxc')
-      .leftJoin(clienteTable, 'c', 'cxc.ccli = c.ccod AND c.id = :empresaId', { empresaId })
-      .where('cxc.id = :empresaId', { empresaId })
-      .andWhere('cxc.ista = 0') // Pendiente
-      .andWhere('cxc.nsal > 0') // Con saldo
-      .andWhere("cxc.cdoc IN ('FAC', 'ENT')");
+    console.log('[CXC DEBUG] Tables:', { cxcTable, clienteTable });
+    console.log('[CXC DEBUG] Query params:', { clienteId, fechaInicio, fechaFin });
 
-    if (vendedorId) query.andWhere('cxc.cven = :vendedorId', { vendedorId });
-    if (clienteId) query.andWhere('cxc.ccli = :clienteId', { clienteId });
-    if (fechaInicio && fechaFin) {
-      query.andWhere('cxc.dfec BETWEEN :inicio AND :fin', { inicio: fechaInicio, fin: fechaFin });
+    let sql = `
+      SELECT cxc.*, c.cdet as cliente_nombre
+      FROM \`${cxcTable}\` cxc
+      LEFT JOIN \`${clienteTable}\` c ON cxc.ccli = c.ccod AND c.id = cxc.id
+      WHERE cxc.id = ? AND cxc.ista = 0 AND cxc.nsal != 0
+    `;
+
+    const params: any[] = [empresaId];
+
+    if (vendedorId && vendedorId !== '0' && vendedorId !== '00') {
+      sql += ' AND (cxc.cven = ? OR cxc.cven = 0 OR cxc.cven = "" OR cxc.cven = "00")';
+      params.push(vendedorId);
     }
 
-    const cxcs = await query.orderBy('cxc.dfec', 'DESC').getRawMany();
+    if (clienteId) {
+      sql += ' AND cxc.ccli = ?';
+      params.push(clienteId);
+    }
 
-    // Mapeo opcional si el frontend requiere 'cliente' anidado
-    const result = cxcs.map(row => ({
+    if (fechaInicio && fechaFin) {
+      sql += ' AND cxc.dfec BETWEEN ? AND ?';
+      params.push(fechaInicio, fechaFin);
+    }
+
+    sql += ' ORDER BY cxc.dfec DESC';
+
+    console.log('[CXC DEBUG] SQL:', sql);
+    console.log('[CXC DEBUG] Params:', params);
+
+    const cxcs = await AppDataSource.query(sql, params);
+    console.log('[CXC DEBUG] Found records:', cxcs.length);
+
+    const result = cxcs.map((row: any) => ({
       ...row,
       cliente: { cnom: row.cliente_nombre }
     }));

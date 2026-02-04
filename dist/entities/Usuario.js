@@ -35,9 +35,9 @@ __decorate([
     __metadata("design:type", String)
 ], Usuario.prototype, "vendedor", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'contraseña', type: 'varchar', length: 100, nullable: false }),
+    (0, typeorm_1.Column)({ name: 'clave', type: 'varchar', length: 100, nullable: false }),
     __metadata("design:type", String)
-], Usuario.prototype, "contra", void 0);
+], Usuario.prototype, "clave", void 0);
 exports.Usuario = Usuario = __decorate([
     (0, typeorm_1.Entity)('a_usuario'),
     (0, typeorm_1.Index)(['id', 'vendedor'], { unique: true }) // Based on the query logic

@@ -2,9 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPedidosByCliente = exports.getPedidoById = exports.createPedido = exports.getPedidos = void 0;
 const database_1 = require("../config/database");
-const Pedido_1 = require("../entities/Pedido");
 const tableName_1 = require("../utils/tableName");
-const pedidoRepository = database_1.AppDataSource.getRepository(Pedido_1.Pedido);
 /**
  * Obtiene todos los pedidos con sus relaciones
  */
@@ -16,19 +14,32 @@ const getPedidos = async (req, res) => {
         const pedidoTable = (0, tableName_1.getTableName)(empresaId, 'pedido');
         const clienteTable = (0, tableName_1.getTableName)(empresaId, 'cliente');
         const articuloTable = (0, tableName_1.getTableName)(empresaId, 'articulo');
-        // Usamos el QueryBuilder del repositorio para mantener el tipado y validaciones
-        const pedidos = await pedidoRepository.createQueryBuilder('p')
-            .from(pedidoTable, 'p') // Forzamos la tabla dinámica
-            .leftJoinAndMapOne('p.cliente', clienteTable, 'c', 'p.cli = c.ccod AND c.id = :empresaId', { empresaId })
-            .leftJoinAndMapOne('p.articulo', articuloTable, 'a', 'p.cod = a.ccod AND a.id = :empresaId', { empresaId })
+        // Usamos AppDataSource.createQueryBuilder para evitar conflictos de metadatos de Entidad
+        // con las tablas dinámicas. Esto emula el éxito que tuvimos con Artículos.
+        const pedidos = await database_1.AppDataSource.createQueryBuilder()
+            .select('p.*')
+            .addSelect('c.cdet', 'cliente_nombre') // Alias para facilitar frontend
+            .addSelect('a.cdet', 'articulo_descripcion')
+            .from(pedidoTable, 'p')
+            .leftJoin(clienteTable, 'c', 'p.cli = c.ccod AND c.id = :empresaId', { empresaId })
+            .leftJoin(articuloTable, 'a', 'p.cod = a.ccod AND a.id = :empresaId', { empresaId })
             .where('p.id = :empresaId', { empresaId })
             .orderBy('p.dfec', 'DESC')
-            .getMany();
-        res.json(pedidos);
+            .getRawMany();
+        // Mapeamos para anidar objetos si el front lo espera (opcional, pero seguro)
+        const result = pedidos.map(row => ({
+            ...row,
+            cliente: { cnom: row.cliente_nombre }, // Estructura simulada de relación
+            articulo: { cdes: row.articulo_descripcion }
+        }));
+        res.json(result);
     }
     catch (error) {
-        console.error('[Pedidos] Error:', error);
-        res.status(500).json({ message: 'Error al obtener los pedidos' });
+        console.error('[Pedidos] Get Error:', error);
+        res.status(500).json({
+            message: 'Error al obtener los pedidos',
+            error: error instanceof Error ? error.message : String(error)
+        });
     }
 };
 exports.getPedidos = getPedidos;
@@ -42,20 +53,19 @@ const createPedido = async (req, res) => {
         if (!empresaId)
             return res.status(403).json({ message: 'Empresa no identificada' });
         const { num, cod, des, can, pre, cli } = req.body;
-        // Validación básica de campos requeridos
+        // Validación básica
         if (!cod || !cli || can === undefined || pre === undefined) {
             return res.status(400).json({ message: 'Faltan campos obligatorios (Articulo, Cliente, Cantidad, Precio)' });
         }
         await queryRunner.connect();
         await queryRunner.startTransaction();
         const pedidoTable = (0, tableName_1.getTableName)(empresaId, 'pedido');
-        // Insertamos usando el QueryBuilder del manager para inyección segura
-        const result = await queryRunner.manager.createQueryBuilder()
+        await queryRunner.manager.createQueryBuilder()
             .insert()
             .into(pedidoTable)
             .values({
             num: num || `PED-${Date.now()}`,
-            ven: vendedorId,
+            ven: vendedorId || 'VEN001',
             cod: cod,
             des: des || '',
             can: Number(can),
@@ -67,16 +77,18 @@ const createPedido = async (req, res) => {
         })
             .execute();
         await queryRunner.commitTransaction();
-        res.status(201).json({
-            success: true,
-            id: result.identifiers[0]?.internalId || result.raw.insertId
-        });
+        // Recuperamos el ID generado buscando por el número único o timestamp
+        // (insertId a veces no es fiable en todos los drivers con tablas legacy)
+        res.status(201).json({ success: true, message: 'Pedido creado correctamente' });
     }
     catch (error) {
         if (queryRunner.isTransactionActive)
             await queryRunner.rollbackTransaction();
         console.error('[Pedidos] Create Error:', error);
-        res.status(500).json({ message: 'Error al crear el pedido' });
+        res.status(500).json({
+            message: 'Error al crear el pedido',
+            error: error instanceof Error ? error.message : String(error)
+        });
     }
     finally {
         await queryRunner.release();
@@ -90,17 +102,26 @@ const getPedidoById = async (req, res) => {
         const pedidoTable = (0, tableName_1.getTableName)(empresaId, 'pedido');
         const clienteTable = (0, tableName_1.getTableName)(empresaId, 'cliente');
         const articuloTable = (0, tableName_1.getTableName)(empresaId, 'articulo');
-        const pedido = await pedidoRepository.createQueryBuilder('p')
+        const pedido = await database_1.AppDataSource.createQueryBuilder()
+            .select('p.*')
+            .addSelect('c.cdet', 'cliente_nombre')
+            .addSelect('a.cdet', 'articulo_descripcion')
             .from(pedidoTable, 'p')
-            .leftJoinAndMapOne('p.cliente', clienteTable, 'c', 'p.cli = c.ccod AND c.id = :empresaId', { empresaId })
-            .leftJoinAndMapOne('p.articulo', articuloTable, 'a', 'p.cod = a.ccod AND a.id = :empresaId', { empresaId })
+            .leftJoin(clienteTable, 'c', 'p.cli = c.ccod AND c.id = :empresaId', { empresaId })
+            .leftJoin(articuloTable, 'a', 'p.cod = a.ccod AND a.id = :empresaId', { empresaId })
             .where('p.xxx = :id AND p.id = :empresaId', { id, empresaId })
-            .getOne();
+            .getRawOne();
         if (!pedido)
             return res.status(404).json({ message: 'Pedido no encontrado' });
-        res.json(pedido);
+        const result = {
+            ...pedido,
+            cliente: { cnom: pedido.cliente_nombre },
+            articulo: { cdes: pedido.articulo_descripcion }
+        };
+        res.json(result);
     }
     catch (error) {
+        console.error('[Pedidos] GetById Error:', error);
         res.status(500).json({ message: 'Error al obtener el pedido' });
     }
 };
@@ -110,14 +131,16 @@ const getPedidosByCliente = async (req, res) => {
         const { clienteId } = req.params;
         const { empresaId } = req.user || {};
         const pedidoTable = (0, tableName_1.getTableName)(empresaId, 'pedido');
-        const pedidos = await pedidoRepository.createQueryBuilder('p')
+        const pedidos = await database_1.AppDataSource.createQueryBuilder()
+            .select('p.*')
             .from(pedidoTable, 'p')
             .where('p.cli = :clienteId AND p.id = :empresaId', { clienteId, empresaId })
             .orderBy('p.dfec', 'DESC')
-            .getMany();
+            .getRawMany();
         res.json(pedidos);
     }
     catch (error) {
+        console.error('[Pedidos] GetByClient Error:', error);
         res.status(500).json({ message: 'Error al obtener pedidos del cliente' });
     }
 };

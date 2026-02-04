@@ -6,9 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec ts-node --transpile-only src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "seed": "ts-node src/seeds/seed.ts",
-    "check": "ts-node src/scripts/check-system.ts"
+    "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",

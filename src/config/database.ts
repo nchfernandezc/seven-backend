@@ -14,7 +14,7 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_DATABASE || 'seven_db',
   entities: [__dirname + "/../entities/*.{js,ts}"],
-  synchronize: process.env.DB_SYNCHRONIZE === 'true',
+  synchronize: false, // Forzado a false para proteger producción
   logging: process.env.DB_LOGGING === 'true',
   connectorPackage: 'mysql2',
   legacySpatialSupport: false,
